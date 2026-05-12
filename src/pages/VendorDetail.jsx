@@ -1,0 +1,103 @@
+import { useState } from "react";
+import StatusBadge from "../components/StatusBadge";
+import PriorityDot from "../components/PriorityDot";
+import FollowUpBadge from "../components/FollowUpBadge";
+import ConvoForm from "../components/ConvoForm";
+import ConvoHistory from "../components/ConvoHistory";
+import LeadDetail from "./LeadDetail";
+import { fmt, fmtShort, isOverdue } from "../utils/helpers";
+
+export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor }) {
+  const [showConvoForm, setShowConvoForm] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
+
+  const vendorLeads = leads.filter(l => l.vendor === vendor.name);
+  const totalValue = vendorLeads.reduce((a, l) => a + l.value, 0);
+  const wonLeads = vendorLeads.filter(l => l.status === "Won");
+  const wonValue = wonLeads.reduce((a, l) => a + l.value, 0);
+  const winRate = vendorLeads.length > 0 ? Math.round((wonLeads.length / vendorLeads.length) * 100) : 0;
+  const activeLeads = vendorLeads.filter(l => !["Won","Lost"].includes(l.status));
+
+  const handleAddConvo = (convo) => {
+    onUpdateVendor({ ...vendor, conversations: [convo, ...vendor.conversations] });
+    setShowConvoForm(false);
+  };
+
+  if (selectedLead) return <LeadDetail lead={selectedLead} onBack={() => setSelectedLead(null)} onUpdateLead={(updated) => setSelectedLead(updated)} />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 900, margin: "0 auto" }}>
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#534AB7", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, padding: 0, width: "fit-content" }}>
+        ← Back to vendors
+      </button>
+
+      <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#1A1918" }}>{vendor.name}</div>
+            <div style={{ fontSize: 13, color: "#6B6A65", marginTop: 4 }}>Partner since {vendor.joinedDate}</div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20, color: vendor.status === "Active" ? "#0F6E56" : "#6B7280", background: vendor.status === "Active" ? "#E1F5EE" : "#F3F4F6" }}>{vendor.status}</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
+          {[["Total leads", vendorLeads.length], ["Active leads", activeLeads.length], ["Total value", fmtShort(totalValue)], ["Won value", fmtShort(wonValue)], ["Win rate", `${winRate}%`], ["Conversations", vendor.conversations.length]].map(([label, val]) => (
+            <div key={label}>
+              <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#1A1918" }}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918" }}>Leads from {vendor.name}</div>
+      {vendorLeads.length === 0 ? (
+        <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, padding: 40, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>No leads from this vendor yet</div>
+      ) : (
+        <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: "#F8F7F4", borderBottom: "1px solid #E5E4DF" }}>
+                {["Lead name","Rep","Value","Status","Priority","Received"].map(h => (
+                  <th key={h} style={{ padding: "9px 14px", textAlign: "left", fontWeight: 600, fontSize: 11, color: "#6B6A65", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {vendorLeads.map((l, i) => (
+                <tr key={l.id} onClick={() => setSelectedLead(l)}
+                  style={{ borderBottom: "1px solid #F3F2EE", background: i % 2 === 0 ? "#fff" : "#FAFAF8", cursor: "pointer" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#F3F2EE"}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#FAFAF8"}>
+                  <td style={{ padding: "11px 14px", fontWeight: 500, color: "#1A1918" }}>{l.leadName}{isOverdue(l.followUpDate) && <FollowUpBadge />}</td>
+                  <td style={{ padding: "11px 14px", color: "#6B6A65" }}>{l.rep.split(" ").map((w, i) => i === 0 ? w[0] + "." : w).join(" ")}</td>
+                  <td style={{ padding: "11px 14px", fontWeight: 600, color: "#1A1918" }}>{fmt(l.value)}</td>
+                  <td style={{ padding: "11px 14px" }}><StatusBadge status={l.status} /></td>
+                  <td style={{ padding: "11px 14px" }}><PriorityDot priority={l.priority} /></td>
+                  <td style={{ padding: "11px 14px", color: "#9CA3AF" }}>{l.receivedAt}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ borderTop: "2px solid #E5E4DF", background: "#F8F7F4" }}>
+                <td style={{ padding: "10px 14px", fontWeight: 700, fontSize: 12, color: "#1A1918" }} colSpan={2}>Total ({vendorLeads.length} leads)</td>
+                <td style={{ padding: "10px 14px", fontWeight: 700, color: "#1A1918" }}>{fmt(totalValue)}</td>
+                <td colSpan={3} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918" }}>Vendor Conversation Log</div>
+        {!showConvoForm && (
+          <button onClick={() => setShowConvoForm(true)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "7px 14px", borderRadius: 8, background: "#534AB7", border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+            + Log Conversation
+          </button>
+        )}
+      </div>
+      {showConvoForm && <ConvoForm onSubmit={handleAddConvo} onCancel={() => setShowConvoForm(false)} context={vendor.name} />}
+      <ConvoHistory conversations={vendor.conversations} />
+    </div>
+  );
+}
