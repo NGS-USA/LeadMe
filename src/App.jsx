@@ -3,33 +3,60 @@ import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Vendors from "./pages/Vendors";
-import Placeholder from "./pages/Placeholder";
 import Reports from "./pages/Reports";
+import Placeholder from "./pages/Placeholder";
 import LeadFormPanel from "./components/LeadFormPanel";
-import { NAV_ITEMS, INITIAL_LEADS, INITIAL_VENDORS, INITIAL_REPS } from "./data/initial";
-import { isOverdue, getNextId, today } from "./utils/helpers";
+import { NAV_ITEMS } from "./data/initial";
+import { isOverdue } from "./utils/helpers";
+import { useData } from "./hooks/useData";
 
 export default function App() {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [leads, setLeads] = useState(INITIAL_LEADS);
-  const [vendors, setVendors] = useState(INITIAL_VENDORS);
-  const [reps, setReps] = useState(INITIAL_REPS);
   const [selectedLead, setSelectedLead] = useState(null);
+
+  const {
+    leads, vendors, reps, loading, error,
+    addLead, updateLead,
+    addVendor, updateVendor,
+    addRep,
+    addLeadConversation, addVendorConversation,
+  } = useData();
 
   const currentItem = NAV_ITEMS.find(n => n.id === activeNav);
   const showNewLead = (activeNav === "dashboard" || activeNav === "leads") && !selectedLead;
   const overdueCount = leads.filter(l => isOverdue(l.followUpDate)).length;
   const vendorNames = vendors.map(v => v.name);
 
-  const handleUpdateLead = (updated) => { setLeads(prev => prev.map(l => l.id === updated.id ? updated : l)); setSelectedLead(updated); };
-  const handleUpdateVendor = (updated) => setVendors(prev => prev.map(v => v.id === updated.id ? updated : v));
+  const handleUpdateLead = async (updated) => {
+    await updateLead(updated);
+    setSelectedLead(updated);
+  };
+
   const handleSelectLead = (lead) => { setSelectedLead(lead); setActiveNav("leads"); };
-  const handleAddVendor = (vendor) => setVendors(prev => [...prev, vendor]);
 
   const headerTitle = selectedLead ? selectedLead.leadName : currentItem?.label;
-  const headerSub = selectedLead ? `${selectedLead.vendor} · ${selectedLead.rep}` : showNewLead ? `${leads.length} leads · Mock data` : activeNav === "vendors" ? `${vendors.length} vendors` : "Coming soon";
+  const headerSub = selectedLead
+    ? `${selectedLead.vendor} · ${selectedLead.rep}`
+    : showNewLead ? `${leads.length} leads`
+    : activeNav === "vendors" ? `${vendors.length} vendors`
+    : "Coming soon";
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4", flexDirection: "column", gap: 12 }}>
+      <div style={{ width: 32, height: 32, border: "3px solid #E5E4DF", borderTop: "3px solid #534AB7", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <div style={{ fontSize: 13, color: "#9CA3AF" }}>Loading LeadTrack…</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#991B1B" }}>Failed to connect to database</div>
+      <div style={{ fontSize: 13, color: "#9CA3AF" }}>{error}</div>
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif", display: "flex", height: "100vh", background: "#F8F7F4", overflow: "hidden" }}>
@@ -41,8 +68,6 @@ export default function App() {
             ? <img src="/logo.png" alt="LeadTrack" style={{ height: 32, objectFit: "contain" }} />
             : <img src="/logo.png" alt="LeadTrack" style={{ width: 26, height: 26, borderRadius: 6, objectFit: "contain" }} />
           }
-          {sidebarOpen && <img src="/logo.png" alt="LeadTrack" style={{ height: 20, objectFit: "contain" }} />}
-          {sidebarOpen && <span style={{ color: "#fff", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>LeadMe</span>}
         </div>
         <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV_ITEMS.map(item => (
@@ -80,13 +105,26 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
           {selectedLead ? (
-            <LeadDetail lead={selectedLead} onBack={() => setSelectedLead(null)} onUpdateLead={handleUpdateLead} />
+            <LeadDetail
+              lead={selectedLead}
+              onBack={() => setSelectedLead(null)}
+              onUpdateLead={handleUpdateLead}
+              onAddConversation={addLeadConversation}
+            />
           ) : (
             <>
               {activeNav === "dashboard" && <Dashboard leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "leads" && <Leads leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "conversations" && <Placeholder label="Conversations" />}
-              {activeNav === "vendors" && <Vendors vendors={vendors} leads={leads} onAddVendor={handleAddVendor} onUpdateVendor={handleUpdateVendor} />}
+              {activeNav === "vendors" && (
+                <Vendors
+                  vendors={vendors}
+                  leads={leads}
+                  onAddVendor={addVendor}
+                  onUpdateVendor={updateVendor}
+                  onAddVendorConversation={addVendorConversation}
+                />
+              )}
               {activeNav === "reports" && <Reports leads={leads} />}
               {activeNav === "settings" && <Placeholder label="Settings" />}
             </>
@@ -97,11 +135,11 @@ export default function App() {
       <LeadFormPanel
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        onSubmit={(lead) => setLeads(prev => [lead, ...prev])}
+        onSubmit={addLead}
         vendors={vendorNames}
         reps={reps}
-        onAddVendor={(name) => handleAddVendor({ id: getNextId(), name, status: "Active", joinedDate: today, conversations: [] })}
-        onAddRep={(r) => setReps(prev => prev.includes(r) ? prev : [...prev, r])}
+        onAddVendor={(name) => addVendor(name)}
+        onAddRep={addRep}
       />
     </div>
   );

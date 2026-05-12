@@ -2,7 +2,7 @@ import { useState } from "react";
 import VendorDetail from "./VendorDetail";
 import { fmtShort, today, getNextId } from "../utils/helpers";
 
-export default function Vendors({ vendors, leads, onAddVendor, onUpdateVendor }) {
+export default function Vendors({ vendors, leads, onAddVendor, onUpdateVendor, onAddVendorConversation }) {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newVendorName, setNewVendorName] = useState("");
@@ -27,6 +27,7 @@ export default function Vendors({ vendors, leads, onAddVendor, onUpdateVendor })
       leads={leads}
       onBack={() => setSelectedVendor(null)}
       onUpdateVendor={(updated) => { onUpdateVendor(updated); setSelectedVendor(updated); }}
+      onAddConversation={onAddVendorConversation}
     />
   );
 

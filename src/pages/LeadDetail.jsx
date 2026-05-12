@@ -6,18 +6,19 @@ import ConvoForm from "../components/ConvoForm";
 import ConvoHistory from "../components/ConvoHistory";
 import { fmt, isOverdue, sendFollowUpEmail } from "../utils/helpers";
 
-export default function LeadDetail({ lead, onBack, onUpdateLead }) {
+export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversation }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleAddConvo = (convo) => {
-    const updatedLead = {
-      ...lead,
-      conversations: [convo, ...lead.conversations],
-      followUpDate: convo.followUpDate || lead.followUpDate,
-    };
-    onUpdateLead(updatedLead);
-    if (convo.followUpDate) sendFollowUpEmail({ repName: lead.rep, leadName: lead.leadName, followUpDate: convo.followUpDate });
-    setShowConvoForm(false);
+  const handleAddConvo = async (convo) => {
+    setSaving(true);
+    try {
+      await onAddConversation(lead.id, convo);
+      if (convo.followUpDate) sendFollowUpEmail({ repName: lead.rep, leadName: lead.leadName, followUpDate: convo.followUpDate });
+    } finally {
+      setSaving(false);
+      setShowConvoForm(false);
+    }
   };
 
   return (
@@ -55,7 +56,14 @@ export default function LeadDetail({ lead, onBack, onUpdateLead }) {
         )}
       </div>
 
-      {showConvoForm && <ConvoForm onSubmit={handleAddConvo} onCancel={() => setShowConvoForm(false)} context={lead.leadName} />}
+      {showConvoForm && (
+        <ConvoForm
+          onSubmit={handleAddConvo}
+          onCancel={() => setShowConvoForm(false)}
+          context={lead.leadName}
+          saving={saving}
+        />
+      )}
       <ConvoHistory conversations={lead.conversations} />
     </div>
   );

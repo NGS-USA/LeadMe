@@ -7,7 +7,7 @@ import ConvoHistory from "../components/ConvoHistory";
 import LeadDetail from "./LeadDetail";
 import { fmt, fmtShort, isOverdue } from "../utils/helpers";
 
-export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor }) {
+export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
@@ -18,8 +18,8 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor }) 
   const winRate = vendorLeads.length > 0 ? Math.round((wonLeads.length / vendorLeads.length) * 100) : 0;
   const activeLeads = vendorLeads.filter(l => !["Won","Lost"].includes(l.status));
 
-  const handleAddConvo = (convo) => {
-    onUpdateVendor({ ...vendor, conversations: [convo, ...vendor.conversations] });
+  const handleAddConvo = async (convo) => {
+    await onAddConversation(vendor.id, convo);
     setShowConvoForm(false);
   };
 
