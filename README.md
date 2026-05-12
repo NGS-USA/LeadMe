@@ -1,2 +1,16 @@
-# LeadMe
-LeadMe is a lead tracking and relationship management platform built for Managed Service Providers (MSPs). It gives sales reps and managers one place to log, track, and follow every lead from first conversation to closed deal. Instead of juggling spreadsheets or sticky notes, your team can submit leads as they come in, document every conversation with vendors, clients, and prospects, and watch the full pipeline on a live dashboard — all in one tool. LeadMe helps your team:  Log leads from any vendor or source and assign them to a rep Track every lead through each stage of the pipeline Document conversations with notes, outcomes, and follow-up dates See at a glance who has what, what's moving, and what's stalled Report on rep performance, vendor value, and pipeline health  Built for MSPs, designed for simplicity — LeadMe turns scattered lead data into a clear, actionable pipeline your whole team can trust.
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
