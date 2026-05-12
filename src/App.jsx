@@ -4,6 +4,7 @@ import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
 import Vendors from "./pages/Vendors";
 import Placeholder from "./pages/Placeholder";
+import Reports from "./pages/Reports";
 import LeadFormPanel from "./components/LeadFormPanel";
 import { NAV_ITEMS, INITIAL_LEADS, INITIAL_VENDORS, INITIAL_REPS } from "./data/initial";
 import { isOverdue, getNextId, today } from "./utils/helpers";
@@ -86,7 +87,7 @@ export default function App() {
               {activeNav === "leads" && <Leads leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "conversations" && <Placeholder label="Conversations" />}
               {activeNav === "vendors" && <Vendors vendors={vendors} leads={leads} onAddVendor={handleAddVendor} onUpdateVendor={handleUpdateVendor} />}
-              {activeNav === "reports" && <Placeholder label="Reports" />}
+              {activeNav === "reports" && <Reports leads={leads} />}
               {activeNav === "settings" && <Placeholder label="Settings" />}
             </>
           )}
