@@ -36,7 +36,11 @@ export default function App() {
       {/* Sidebar */}
       <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#1A1918", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
         <div style={{ padding: "18px 14px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ width: 26, height: 26, background: "#534AB7", borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700 }}>L</div>
+          {sidebarOpen
+            ? <img src="/logo.png" alt="LeadTrack" style={{ height: 32, objectFit: "contain" }} />
+            : <img src="/logo.png" alt="LeadTrack" style={{ width: 26, height: 26, borderRadius: 6, objectFit: "contain" }} />
+          }
+          {sidebarOpen && <img src="/logo.png" alt="LeadTrack" style={{ height: 20, objectFit: "contain" }} />}
           {sidebarOpen && <span style={{ color: "#fff", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>LeadMe</span>}
         </div>
         <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 2 }}>
