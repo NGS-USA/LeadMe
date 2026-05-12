@@ -63,10 +63,11 @@ export default function App() {
 
       {/* Sidebar */}
       <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#1A1918", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
-        <div style={{ padding: "18px 14px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ padding: "16px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           {sidebarOpen
-            ? <img src="/logo.png" alt="LeadTrack" style={{ height: 32, objectFit: "contain" }} />
-            : <img src="/logo.png" alt="LeadTrack" style={{ width: 26, height: 26, borderRadius: 6, objectFit: "contain" }} />
+            {sidebarOpen
+            ? <img src="/logo.png" alt="LeadTrack" style={{ width: "100%", objectFit: "contain" }} />
+            : <img src="/logo.png" alt="LeadTrack" style={{ width: 36, height: 36, borderRadius: 6, objectFit: "contain" }} />
           }
         </div>
         <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 2 }}>
