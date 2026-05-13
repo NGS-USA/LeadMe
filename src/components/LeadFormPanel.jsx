@@ -32,13 +32,17 @@ export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, 
 
   const inp = (err) => ({ fontSize: 13, padding: "8px 10px", borderRadius: 8, border: `1px solid ${err ? "#FCA5A5" : "#C5C4BF"}`, outline: "none", background: err ? "#FFF5F5" : "#fff", width: "100%", boxSizing: "border-box" });
 
-  const F = ({ label, err, children }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>{label}</label>
-      {children}
-      {err && <span style={{ fontSize: 11, color: "#991B1B" }}>{err}</span>}
-    </div>
-  );
+  function F({ label, err, children }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>{label}</label>
+        {children}
+        {err && <span style={{ fontSize: 11, color: "#991B1B" }}>{err}</span>}
+      </div>
+    );
+  }
+
+  export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, onAddVendor, onAddRep }) {
 
   return (
     <>
