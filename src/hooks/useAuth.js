@@ -8,18 +8,25 @@ export function useAuth() {
   const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
+    // Track if initial session load is done
+    let initialLoad = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      initialLoad = false;
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Only trigger MFA check on a fresh sign in, not on session restore
-      if (event === "SIGNED_IN") {
+      // Only trigger MFA on a fresh password login, not session restore or token refresh
+      if (event === "SIGNED_IN" && !initialLoad) {
         setMfaRequired(true);
+      }
+      if (event === "SIGNED_OUT") {
+        setMfaRequired(false);
       }
     });
 
