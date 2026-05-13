@@ -20,7 +20,7 @@ function RepChart({ leads }) {
         {repData.map((r, i) => (
           <div key={r.rep}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-              <span style={{ fontSize: 13, color: "#1A1918", fontWeight: 500 }}>{r.rep.split(" ").slice(-1)[0]}</span>
+              <span style={{ fontSize: 13, color: "#1A1918", fontWeight: 500 }}>{r.rep}</span>
               <span style={{ fontSize: 12, color: "#6B6A65" }}>{fmtShort(r.total)} · {r.count} leads</span>
             </div>
             <div style={{ height: 8, background: "#F3F2EE", borderRadius: 4, overflow: "hidden" }}>

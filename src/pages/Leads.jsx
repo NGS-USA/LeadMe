@@ -43,8 +43,12 @@ export default function Leads({ leads, onSelectLead }) {
           <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9CA3AF", pointerEvents: "none" }}>🔍</span>
           <input placeholder="Search leads or vendors…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", paddingLeft: 28, fontSize: 13, boxSizing: "border-box" }} />
         </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize: 13 }}>{statuses.map(s => <option key={s}>{s}</option>)}</select>
-        <select value={filterRep} onChange={e => setFilterRep(e.target.value)} style={{ fontSize: 13 }}>{reps.map(r => <option key={r}>{r === "All" ? "All reps" : r.split(" ").slice(-1)[0]}</option>)}</select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize: 13 }}>
+          {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filterRep} onChange={e => setFilterRep(e.target.value)} style={{ fontSize: 13 }}>
+          {reps.map(r => <option key={r} value={r}>{r === "All" ? "All reps" : r}</option>)}
+        </select>
         <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: "auto" }}>{filtered.length} of {leads.length}</span>
       </div>
       <div style={{ overflowX: "auto" }}>
@@ -68,7 +72,7 @@ export default function Leads({ leads, onSelectLead }) {
                   {l.leadName}{isOverdue(l.followUpDate) && <FollowUpBadge />}
                 </td>
                 <td style={{ padding: "11px 14px", color: "#6B6A65", whiteSpace: "nowrap" }}>{l.vendor}</td>
-                <td style={{ padding: "11px 14px", color: "#6B6A65", whiteSpace: "nowrap" }}>{l.rep.split(" ").map((w, i) => i === 0 ? w[0] + "." : w).join(" ")}</td>
+                <td style={{ padding: "11px 14px", color: "#6B6A65", whiteSpace: "nowrap" }}>{l.rep}</td>
                 <td style={{ padding: "11px 14px", fontWeight: 600, color: "#1A1918", whiteSpace: "nowrap" }}>{fmt(l.value)}</td>
                 <td style={{ padding: "11px 14px" }}><StatusBadge status={l.status} /></td>
                 <td style={{ padding: "11px 14px" }}><PriorityDot priority={l.priority} /></td>

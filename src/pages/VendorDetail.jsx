@@ -65,10 +65,7 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
         ← Back to vendors
       </button>
 
-      {/* Vendor header */}
       <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, padding: "20px 24px" }}>
-
-        {/* View mode */}
         {!editing && (
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
@@ -92,7 +89,6 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
           </>
         )}
 
-        {/* Edit mode */}
         {editing && (
           <>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1918", marginBottom: 16 }}>Editing vendor</div>
@@ -122,7 +118,6 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
         )}
       </div>
 
-      {/* Leads from this vendor */}
       <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918" }}>Leads from {vendor.name}</div>
       {vendorLeads.length === 0 ? (
         <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, padding: 40, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>No leads from this vendor yet</div>
@@ -143,7 +138,7 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
                   onMouseEnter={e => e.currentTarget.style.background = "#F3F2EE"}
                   onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "#FAFAF8"}>
                   <td style={{ padding: "11px 14px", fontWeight: 500, color: "#1A1918" }}>{l.leadName}{isOverdue(l.followUpDate) && <FollowUpBadge />}</td>
-                  <td style={{ padding: "11px 14px", color: "#6B6A65" }}>{l.rep.split(" ").map((w, i) => i === 0 ? w[0] + "." : w).join(" ")}</td>
+                  <td style={{ padding: "11px 14px", color: "#6B6A65" }}>{l.rep}</td>
                   <td style={{ padding: "11px 14px", fontWeight: 600, color: "#1A1918" }}>{fmt(l.value)}</td>
                   <td style={{ padding: "11px 14px" }}><StatusBadge status={l.status} /></td>
                   <td style={{ padding: "11px 14px" }}><PriorityDot priority={l.priority} /></td>
@@ -162,7 +157,6 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
         </div>
       )}
 
-      {/* Vendor conversation log */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918" }}>Vendor Conversation Log</div>
         {!showConvoForm && (
