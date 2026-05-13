@@ -8,17 +8,20 @@ import { fmt, isOverdue } from "../utils/helpers";
 export default function Leads({ leads, onSelectLead }) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterVendor, setFilterVendor] = useState("All");
   const [filterRep, setFilterRep] = useState("All");
   const [sortCol, setSortCol] = useState("value");
   const [sortDir, setSortDir] = useState("desc");
 
   const reps = ["All", ...Array.from(new Set(leads.map(l => l.rep)))];
+  const vendors = ["All", ...Array.from(new Set(leads.map(l => l.vendor)))];
   const statuses = ["All", ...Object.keys(STATUS_CONFIG)];
 
   const filtered = useMemo(() => leads
     .filter(l =>
       (filterStatus === "All" || l.status === filterStatus) &&
       (filterRep === "All" || l.rep === filterRep) &&
+      (filterVendor === "All" || l.vendor === filterVendor) &&
       (search === "" || l.leadName.toLowerCase().includes(search.toLowerCase()) || l.vendor.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
@@ -45,6 +48,9 @@ export default function Leads({ leads, onSelectLead }) {
         </div>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ fontSize: 13 }}>
           {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filterVendor} onChange={e => setFilterVendor(e.target.value)} style={{ fontSize: 13 }}>
+          {vendors.map(v => <option key={v} value={v}>{v === "All" ? "All vendors" : v}</option>)}
         </select>
         <select value={filterRep} onChange={e => setFilterRep(e.target.value)} style={{ fontSize: 13 }}>
           {reps.map(r => <option key={r} value={r}>{r === "All" ? "All reps" : r}</option>)}
