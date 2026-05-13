@@ -14,9 +14,13 @@ export function useAuth() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Only trigger MFA check on a fresh sign in, not on session restore
+      if (event === "SIGNED_IN") {
+        setMfaRequired(true);
+      }
     });
 
     return () => subscription.unsubscribe();

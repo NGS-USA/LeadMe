@@ -46,11 +46,15 @@ export default function App() {
     addLeadConversation, addVendorConversation,
   } = useData();
 
-  // After login, check MFA status
   useEffect(() => {
     if (!user) { setAuthStep("idle"); setMfaEnrolled(null); return; }
-    checkPostLoginMfa();
   }, [user]);
+
+  useEffect(() => {
+    if (mfaRequired && user) {
+      checkPostLoginMfa();
+    }
+  }, [mfaRequired]);
 
   const checkPostLoginMfa = async () => {
     const enrolled = await checkMfaEnrolled();
