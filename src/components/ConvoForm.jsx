@@ -2,6 +2,16 @@ import { useState } from "react";
 import { EMPTY_CONVO_FORM } from "../data/initial";
 import { getNextId } from "../utils/helpers";
 
+function F({ label, err, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>{label}</label>
+      {children}
+      {err && <span style={{ fontSize: 11, color: "#991B1B" }}>{err}</span>}
+    </div>
+  );
+}
+
 export default function ConvoForm({ onSubmit, onCancel, context }) {
   const [form, setForm] = useState(EMPTY_CONVO_FORM);
   const [errors, setErrors] = useState({});
@@ -23,18 +33,6 @@ export default function ConvoForm({ onSubmit, onCancel, context }) {
   };
 
   const inp = (err) => ({ fontSize: 13, padding: "8px 10px", borderRadius: 8, border: `1px solid ${err ? "#FCA5A5" : "#C5C4BF"}`, outline: "none", background: err ? "#FFF5F5" : "#fff", width: "100%", boxSizing: "border-box" });
-
-  function F({ label, err, children }) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>{label}</label>
-        {children}
-        {err && <span style={{ fontSize: 11, color: "#991B1B" }}>{err}</span>}
-      </div>
-    );
-  }
-
-  export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, onAddVendor, onAddRep }) {
 
   return (
     <div style={{ background: "#F8F7F4", border: "1px solid #E5E4DF", borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
