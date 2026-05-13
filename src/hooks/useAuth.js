@@ -21,9 +21,12 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // Only trigger MFA on a fresh password login, not session restore or token refresh
-      if (event === "SIGNED_IN" && !initialLoad) {
-        setMfaRequired(true);
+      // Only trigger MFA on explicit password sign in, not token refresh or session restore
+      if (event === "SIGNED_IN" && !initialLoad && session?.user?.last_sign_in_at) {
+        const signInTime = new Date(session.user.last_sign_in_at).getTime();
+        const now = Date.now();
+        const isRecentLogin = now - signInTime < 10000; // within 10 seconds
+        if (isRecentLogin) setMfaRequired(true);
       }
       if (event === "SIGNED_OUT") {
         setMfaRequired(false);
