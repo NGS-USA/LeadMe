@@ -10,7 +10,7 @@ export default function Vendors({ vendors, leads, onAddVendor, onUpdateVendor, o
   const handleAdd = () => {
     const name = newVendorName.trim();
     if (!name) return;
-    onAddVendor({ id: getNextId(), name, status: "Active", joinedDate: today, conversations: [] });
+    onAddVendor(name);
     setNewVendorName("");
     setShowAddForm(false);
   };
