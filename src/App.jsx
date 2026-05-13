@@ -134,7 +134,7 @@ export default function App() {
     <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif", display: "flex", height: "100vh", background: "#F8F7F4", overflow: "hidden" }}>
 
       {/* Sidebar */}
-      <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#1A1918", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
+      <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#1C2333", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
         <div style={{ padding: "16px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           {sidebarOpen
             ? <img src="/logo.png" alt="LeadTrack" style={{ width: "100%", objectFit: "contain" }} />
