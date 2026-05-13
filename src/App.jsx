@@ -24,7 +24,7 @@ export default function App() {
   }
 
   const {
-    user, loading: authLoading,
+    user, session, loading: authLoading, mfaRequired,
     signInWithEmail, signInWithMicrosoft, signOut,
     verifyMfa, enrollMfa, confirmMfaEnrollment,
     unenrollMfa, checkMfaEnrolled,
