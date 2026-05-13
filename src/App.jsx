@@ -196,7 +196,16 @@ export default function App() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
           {selectedLead ? (
-            <LeadDetail lead={selectedLead} onBack={() => setSelectedLead(null)} onUpdateLead={handleUpdateLead} onAddConversation={addLeadConversation} />
+            <LeadDetail
+              lead={selectedLead}
+              onBack={() => setSelectedLead(null)}
+              onUpdateLead={handleUpdateLead}
+              onAddConversation={addLeadConversation}
+              vendors={vendorNames}
+              reps={reps}
+              onAddVendor={(name) => addVendor(name)}
+              onAddRep={addRep}
+            />
           ) : (
             <>
               {activeNav === "dashboard" && <Dashboard leads={leads} onSelectLead={handleSelectLead} />}

@@ -6,6 +6,7 @@ import ConvoForm from "../components/ConvoForm";
 import ConvoHistory from "../components/ConvoHistory";
 import { fmt, isOverdue, sendFollowUpEmail } from "../utils/helpers";
 import { STATUS_CONFIG } from "../data/initial";
+import AddableSelect from "../components/AddableSelect";
 
 function EditField({ label, children }) {
   return (
@@ -18,7 +19,7 @@ function EditField({ label, children }) {
 
 const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", width: "100%", boxSizing: "border-box" };
 
-export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversation }) {
+export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversation, vendors, reps, onAddVendor, onAddRep }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -122,10 +123,10 @@ export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversati
                 </EditField>
               </div>
               <EditField label="Vendor">
-                <input value={editForm.vendor} onChange={e => set("vendor", e.target.value)} style={inp} />
+                <AddableSelect value={editForm.vendor} onChange={v => set("vendor", v)} options={vendors} onAddNew={onAddVendor} placeholder="Select vendor" />
               </EditField>
               <EditField label="Assigned Rep">
-                <input value={editForm.rep} onChange={e => set("rep", e.target.value)} style={inp} />
+                <AddableSelect value={editForm.rep} onChange={v => set("rep", v)} options={reps} onAddNew={onAddRep} placeholder="Select rep" />
               </EditField>
               <EditField label="Estimated Value ($)">
                 <input value={editForm.value} onChange={e => set("value", e.target.value)} style={inp} />
