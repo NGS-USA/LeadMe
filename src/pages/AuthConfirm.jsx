@@ -8,7 +8,8 @@ export default function AuthConfirm() {
     const type = params.get("type");
 
     if (token_hash && type) {
-      supabase.auth.verifyOtp({ token_hash, type }).then(() => {
+      supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
+        if (error) console.error("Confirm error:", error);
         window.location.href = "/";
       });
     }

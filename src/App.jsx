@@ -18,8 +18,8 @@ import { supabase } from "./lib/supabase";
 import AuthConfirm from "./pages/AuthConfirm";
 
 export default function App() {
-  // Handle invite confirmation redirect
-  if (window.location.pathname === "/auth/confirm") {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("token_hash") && params.get("type") === "invite") {
     return <AuthConfirm />;
   }
 
