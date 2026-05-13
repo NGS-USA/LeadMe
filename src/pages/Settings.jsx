@@ -354,10 +354,7 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      console.log("Profile data:", profile);
-      console.log("Profile error:", profileError);
-      console.log("User ID:", user.id);
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       setIsAdmin(profile?.role === "admin");
 
       const { data: setting } = await supabase.from("settings").select("value").eq("key", "force_mfa").single();
