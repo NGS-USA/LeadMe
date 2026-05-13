@@ -15,8 +15,14 @@ import { isOverdue } from "./utils/helpers";
 import { useData } from "./hooks/useData";
 import { useAuth } from "./hooks/useAuth";
 import { supabase } from "./lib/supabase";
+import AuthConfirm from "./pages/AuthConfirm";
 
 export default function App() {
+  // Handle invite confirmation redirect
+  if (window.location.pathname === "/auth/confirm") {
+    return <AuthConfirm />;
+  }
+
   const {
     user, loading: authLoading,
     signInWithEmail, signInWithMicrosoft, signOut,
