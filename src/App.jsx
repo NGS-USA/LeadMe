@@ -138,7 +138,7 @@ export default function App() {
     <div style={{ fontFamily: "'DM Sans','Helvetica Neue',sans-serif", display: "flex", height: "100vh", background: "#F8F7F4", overflow: "hidden" }}>
 
       {/* Sidebar */}
-      <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#1C2333", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
+      <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#223255", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
         <div style={{ padding: "16px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           {sidebarOpen
             ? <img src="/logo.png" alt="LeadTrack" style={{ width: "100%", objectFit: "contain" }} />
@@ -174,7 +174,7 @@ export default function App() {
           </button>
         </div>
 
-        <button onClick={() => setSidebarOpen(o => !o)} style={{ margin: "8px", padding: 7, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
+        <button onClick={() => setSidebarOpen(o => !o)} style={{ margin: "8px", padding: 7, borderRadius: 7, border: "none", background: "#ffffff0f", color: "rgba(255,255,255,0.35)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
           {sidebarOpen ? "◀" : "▶"}
         </button>
       </div>
