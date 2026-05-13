@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { adminApi } from "../lib/adminApi";
+import { STATUS_CONFIG } from "../data/initial";
 
-function Section({ title, children }) {
+function Section({ title, subtitle, children }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
-      <div style={{ padding: "14px 20px", borderBottom: "1px solid #E5E4DF", fontSize: 13, fontWeight: 700, color: "#1A1918" }}>{title}</div>
+      <div style={{ padding: "14px 20px", borderBottom: "1px solid #E5E4DF" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1918" }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{subtitle}</div>}
+      </div>
       <div style={{ padding: "20px" }}>{children}</div>
     </div>
   );
@@ -20,8 +24,23 @@ function Toast({ message, type }) {
   );
 }
 
+function ToggleRow({ label, description, value, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", borderBottom: "1px solid #F3F2EE" }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1918" }}>{label}</div>
+        {description && <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>{description}</div>}
+      </div>
+      <button onClick={() => onChange(!value)}
+        style={{ width: 44, height: 24, borderRadius: 12, border: "none", background: value ? "#534AB7" : "#E5E4DF", cursor: "pointer", position: "relative", flexShrink: 0, transition: "background 0.2s" }}>
+        <span style={{ position: "absolute", top: 3, left: value ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
+      </button>
+    </div>
+  );
+}
+
 // ── MFA Section ───────────────────────────────────────────────────────────────
-function MfaSection({ user, onEnroll, onConfirmEnrollment, onUnenroll, onCheckMfaEnrolled }) {
+function MfaSection({ onEnroll, onConfirmEnrollment, onUnenroll, onCheckMfaEnrolled }) {
   const [mfaEnrolled, setMfaEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState("idle");
@@ -36,8 +55,7 @@ function MfaSection({ user, onEnroll, onConfirmEnrollment, onUnenroll, onCheckMf
   }, []);
 
   const flash = (msg, type = "success") => {
-    if (type === "success") setSuccess(msg);
-    else setError(msg);
+    if (type === "success") setSuccess(msg); else setError(msg);
     setTimeout(() => { setSuccess(null); setError(null); }, 4000);
   };
 
@@ -181,43 +199,23 @@ function UserManagementSection() {
   };
 
   const handleResetPassword = async (email) => {
-    try {
-      await adminApi.resetPassword(email);
-      flash(`Password reset email sent to ${email}`);
-    } catch (err) {
-      flash(err.message, "error");
-    }
+    try { await adminApi.resetPassword(email); flash(`Password reset email sent to ${email}`); }
+    catch (err) { flash(err.message, "error"); }
   };
 
   const handleResetMfa = async (userId, email) => {
-    try {
-      await adminApi.resetMfa(userId);
-      flash(`MFA reset for ${email}`);
-      loadUsers();
-    } catch (err) {
-      flash(err.message, "error");
-    }
+    try { await adminApi.resetMfa(userId); flash(`MFA reset for ${email}`); loadUsers(); }
+    catch (err) { flash(err.message, "error"); }
   };
 
   const handleUpdateRole = async (userId, role) => {
-    try {
-      await adminApi.updateRole(userId, role);
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-      flash("Role updated");
-    } catch (err) {
-      flash(err.message, "error");
-    }
+    try { await adminApi.updateRole(userId, role); setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u)); flash("Role updated"); }
+    catch (err) { flash(err.message, "error"); }
   };
 
   const handleDeleteUser = async (userId) => {
-    try {
-      await adminApi.deleteUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setConfirmDelete(null);
-      flash("User deleted");
-    } catch (err) {
-      flash(err.message, "error");
-    }
+    try { await adminApi.deleteUser(userId); setUsers(prev => prev.filter(u => u.id !== userId)); setConfirmDelete(null); flash("User deleted"); }
+    catch (err) { flash(err.message, "error"); }
   };
 
   const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", boxSizing: "border-box" };
@@ -225,35 +223,24 @@ function UserManagementSection() {
   return (
     <>
       <Toast message={toast.message} type={toast.type} />
-
-      {/* Invite form */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         {showInviteForm ? (
           <form onSubmit={handleInvite} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-              placeholder="Email address" required style={{ ...inp, width: 220 }} />
+            <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="Email address" required style={{ ...inp, width: 220 }} />
             <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ ...inp, width: 110 }}>
               <option value="rep">Rep</option>
               <option value="admin">Admin</option>
             </select>
-            <button type="submit" disabled={saving}
-              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: saving ? "#A09CF5" : "#534AB7", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+            <button type="submit" disabled={saving} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: saving ? "#A09CF5" : "#534AB7", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
               {saving ? "Sending…" : "Send invite"}
             </button>
-            <button type="button" onClick={() => setShowInviteForm(false)}
-              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>
-              Cancel
-            </button>
+            <button type="button" onClick={() => setShowInviteForm(false)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>Cancel</button>
           </form>
         ) : (
-          <button onClick={() => setShowInviteForm(true)}
-            style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#534AB7", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-            + Invite user
-          </button>
+          <button onClick={() => setShowInviteForm(true)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#534AB7", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ Invite user</button>
         )}
       </div>
 
-      {/* Users table */}
       {loading ? (
         <div style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", padding: 20 }}>Loading users…</div>
       ) : (
@@ -271,8 +258,7 @@ function UserManagementSection() {
                 <tr key={u.id} style={{ borderBottom: "1px solid #F3F2EE", background: i % 2 === 0 ? "#fff" : "#FAFAF8" }}>
                   <td style={{ padding: "11px 14px", color: "#1A1918", fontWeight: 500 }}>{u.email}</td>
                   <td style={{ padding: "11px 14px" }}>
-                    <select value={u.role} onChange={e => handleUpdateRole(u.id, e.target.value)}
-                      style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", cursor: "pointer" }}>
+                    <select value={u.role} onChange={e => handleUpdateRole(u.id, e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", cursor: "pointer" }}>
                       <option value="rep">Rep</option>
                       <option value="admin">Admin</option>
                     </select>
@@ -282,56 +268,105 @@ function UserManagementSection() {
                       {u.mfa_enabled ? "Enabled" : "Not set up"}
                     </span>
                   </td>
-                  <td style={{ padding: "11px 14px", color: "#9CA3AF", fontSize: 12 }}>
-                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "Never"}
-                  </td>
+                  <td style={{ padding: "11px 14px", color: "#9CA3AF", fontSize: 12 }}>{u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "Never"}</td>
                   <td style={{ padding: "11px 14px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => handleResetPassword(u.email)}
-                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", fontSize: 11, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                        Reset password
-                      </button>
-                      {u.mfa_enabled && (
-                        <button onClick={() => handleResetMfa(u.id, u.email)}
-                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", fontSize: 11, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                          Reset MFA
-                        </button>
-                      )}
-                      <button onClick={() => setConfirmDelete(u)}
-                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#FFF5F5", fontSize: 11, cursor: "pointer", color: "#991B1B", fontFamily: "inherit" }}>
-                        Delete
-                      </button>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button onClick={() => handleResetPassword(u.email)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", fontSize: 11, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit", whiteSpace: "nowrap" }}>Reset password</button>
+                      {u.mfa_enabled && <button onClick={() => handleResetMfa(u.id, u.email)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #E5E4DF", background: "#fff", fontSize: 11, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit", whiteSpace: "nowrap" }}>Reset MFA</button>}
+                      <button onClick={() => setConfirmDelete(u)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#FFF5F5", fontSize: 11, cursor: "pointer", color: "#991B1B", fontFamily: "inherit" }}>Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {users.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: "center", color: "#9CA3AF" }}>No users found</td></tr>
-              )}
+              {users.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: "center", color: "#9CA3AF" }}>No users found</td></tr>}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Delete confirmation */}
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: "#fff", borderRadius: 12, padding: 24, maxWidth: 380, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918", marginBottom: 8 }}>Delete user?</div>
-            <div style={{ fontSize: 13, color: "#6B6A65", marginBottom: 20 }}>This will permanently delete <strong>{confirmDelete.email}</strong> and all their data. This cannot be undone.</div>
+            <div style={{ fontSize: 13, color: "#6B6A65", marginBottom: 20 }}>This will permanently delete <strong>{confirmDelete.email}</strong>. This cannot be undone.</div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setConfirmDelete(null)}
-                style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>
-                Cancel
-              </button>
-              <button onClick={() => handleDeleteUser(confirmDelete.id)}
-                style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: "#991B1B", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                Yes, delete user
-              </button>
+              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={() => handleDeleteUser(confirmDelete.id)} style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: "#991B1B", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Yes, delete user</button>
             </div>
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// ── App Settings Section ──────────────────────────────────────────────────────
+function AppSettingsSection() {
+  const [settings, setSettings] = useState({
+    default_lead_status: "New",
+    default_lead_priority: "Medium",
+    notify_followup_day_of: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(null);
+
+  useEffect(() => { loadSettings(); }, []);
+
+  const loadSettings = async () => {
+    const { data } = await supabase.from("settings").select("key, value")
+      .in("key", ["default_lead_status", "default_lead_priority", "notify_followup_day_of"]);
+    if (data) {
+      const map = {};
+      data.forEach(s => { map[s.key] = s.key === "notify_followup_day_of" ? s.value === "true" : s.value; });
+      setSettings(prev => ({ ...prev, ...map }));
+    }
+    setLoading(false);
+  };
+
+  const saveSetting = async (key, value) => {
+    setSaving(true);
+    await supabase.from("settings").upsert({ key, value: String(value) });
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setSuccess("Settings saved");
+    setTimeout(() => setSuccess(null), 3000);
+    setSaving(false);
+  };
+
+  const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", boxSizing: "border-box" };
+
+  if (loading) return <div style={{ fontSize: 13, color: "#9CA3AF" }}>Loading…</div>;
+
+  return (
+    <>
+      {success && <div style={{ background: "#DCFCE7", border: "1px solid #BBF7D0", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#166534", marginBottom: 16 }}>{success}</div>}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>Default lead status</label>
+            <select value={settings.default_lead_status} onChange={e => saveSetting("default_lead_status", e.target.value)} style={inp}>
+              {Object.keys(STATUS_CONFIG).map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>Default lead priority</label>
+            <select value={settings.default_lead_priority} onChange={e => saveSetting("default_lead_priority", e.target.value)} style={inp}>
+              {["High","Medium","Low"].map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ borderTop: "1px solid #F3F2EE", paddingTop: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1918", marginBottom: 12 }}>Follow-up reminders</div>
+          <ToggleRow
+            label="Notify on the day of follow-up"
+            description="Highlights overdue leads in the dashboard and lead table"
+            value={settings.notify_followup_day_of}
+            onChange={v => saveSetting("notify_followup_day_of", v)}
+          />
+        </div>
+      </div>
     </>
   );
 }
@@ -356,7 +391,6 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
     try {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       setIsAdmin(profile?.role === "admin");
-
       const { data: setting } = await supabase.from("settings").select("value").eq("key", "force_mfa").single();
       if (setting) setForceMfa(setting.value === "true");
     } finally {
@@ -371,11 +405,8 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
       await supabase.from("settings").upsert({ key: "force_mfa", value: String(newVal) });
       setForceMfa(newVal);
       flash(`Force MFA ${newVal ? "enabled" : "disabled"} for all users.`);
-    } catch (err) {
-      flash("Failed to update setting.", "error");
-    } finally {
-      setSaving(false);
-    }
+    } catch { flash("Failed to update setting.", "error"); }
+    finally { setSaving(false); }
   };
 
   if (loading) return <div style={{ fontSize: 13, color: "#9CA3AF", padding: 20 }}>Loading settings…</div>;
@@ -384,7 +415,6 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <Toast message={toast.message} type={toast.type} />
 
-      {/* Account */}
       <Section title="Account">
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Signed in as</div>
@@ -393,34 +423,26 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
         </div>
       </Section>
 
-      {/* MFA */}
       <Section title="Two-factor authentication">
-        <MfaSection
-          user={user}
-          onEnroll={onEnroll}
-          onConfirmEnrollment={onConfirmEnrollment}
-          onUnenroll={onUnenroll}
-          onCheckMfaEnrolled={onCheckMfaEnrolled}
-        />
+        <MfaSection onEnroll={onEnroll} onConfirmEnrollment={onConfirmEnrollment} onUnenroll={onUnenroll} onCheckMfaEnrolled={onCheckMfaEnrolled} />
       </Section>
 
-      {/* Admin sections */}
       {isAdmin && (
         <>
-          <Section title="Admin — Security settings">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1918", marginBottom: 4 }}>Force MFA for all users</div>
-                <div style={{ fontSize: 12, color: "#9CA3AF" }}>When enabled, users must set up MFA before accessing the app and cannot skip.</div>
-              </div>
-              <button onClick={handleToggleForceMfa} disabled={saving}
-                style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${forceMfa ? "#FCA5A5" : "#534AB7"}`, background: forceMfa ? "#FFF5F5" : "#534AB7", fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", color: forceMfa ? "#991B1B" : "#fff", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                {forceMfa ? "Disable forced MFA" : "Force MFA for all"}
-              </button>
-            </div>
+          <Section title="App settings" subtitle="Defaults applied when creating new leads">
+            <AppSettingsSection />
           </Section>
 
-          <Section title="Admin — User management">
+          <Section title="Security" subtitle="Platform-wide security policies">
+            <ToggleRow
+              label="Force MFA for all users"
+              description="Users must set up MFA before accessing the app and cannot skip"
+              value={forceMfa}
+              onChange={handleToggleForceMfa}
+            />
+          </Section>
+
+          <Section title="User management" subtitle="Invite and manage team members">
             <UserManagementSection />
           </Section>
         </>

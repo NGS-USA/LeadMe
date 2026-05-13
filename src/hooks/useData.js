@@ -124,6 +124,12 @@ export function useData() {
 
   // ── Update vendor ──
   async function updateVendor(vendor) {
+    const { error } = await supabase.from("vendors").update({
+      name: vendor.name,
+      status: vendor.status,
+      joined_date: vendor.joinedDate,
+    }).eq("id", vendor.id);
+    if (error) throw error;
     setVendors(prev => prev.map(v => v.id === vendor.id ? vendor : v));
   }
 
