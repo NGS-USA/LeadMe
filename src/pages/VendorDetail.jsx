@@ -6,6 +6,7 @@ import ConvoForm from "../components/ConvoForm";
 import ConvoHistory from "../components/ConvoHistory";
 import LeadDetail from "./LeadDetail";
 import { fmt, fmtShort, isOverdue } from "../utils/helpers";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function EditField({ label, children }) {
   return (
@@ -18,12 +19,14 @@ function EditField({ label, children }) {
 
 const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", width: "100%", boxSizing: "border-box" };
 
-export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation, allReps, onUpdateVendorReps }) {
+export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation, allReps, onUpdateVendorReps, onDelete, onDeleteRep, isAdmin }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showDeleteVendorConfirm, setShowDeleteVendorConfirm] = useState(false);
+  const [confirmDeleteRep, setConfirmDeleteRep] = useState(null);
 
   const vendorLeads = leads.filter(l => l.vendor === vendor.name);
   const totalValue = vendorLeads.reduce((a, l) => a + l.value, 0);
@@ -79,6 +82,12 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 20, color: vendor.status === "Active" ? "#0F6E56" : "#6B7280", background: vendor.status === "Active" ? "#E1F5EE" : "#F3F4F6" }}>{vendor.status}</span>
                 <button onClick={handleStartEdit} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>✏️ Edit</button>
+                {isAdmin && (
+                  <button onClick={() => setShowDeleteVendorConfirm(true)}
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FCA5A5", background: "#FFF5F5", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#991B1B", fontFamily: "inherit" }}>
+                    🗑 Delete
+                  </button>
+                )}
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
@@ -116,15 +125,23 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
                   {(allReps || []).map(rep => {
                     const selected = (editForm.reps || vendor.reps || []).includes(rep);
                     return (
-                      <button key={rep} type="button"
-                        onClick={() => {
-                          const current = editForm.reps ?? vendor.reps ?? [];
-                          const updated = selected ? current.filter(r => r !== rep) : [...current, rep];
-                          set("reps", updated);
-                        }}
-                        style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${selected ? "#534AB7" : "#E5E4DF"}`, background: selected ? "#EEF0FF" : "#fff", color: selected ? "#534AB7" : "#6B6A65", fontSize: 12, fontWeight: selected ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
-                        {rep}
-                      </button>
+                      <div key={rep} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button type="button"
+                          onClick={() => {
+                            const current = editForm.reps ?? vendor.reps ?? [];
+                            const updated = selected ? current.filter(r => r !== rep) : [...current, rep];
+                            set("reps", updated);
+                          }}
+                          style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${selected ? "#534AB7" : "#E5E4DF"}`, background: selected ? "#EEF0FF" : "#fff", color: selected ? "#534AB7" : "#6B6A65", fontSize: 12, fontWeight: selected ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+                          {rep}
+                        </button>
+                        {isAdmin && (
+                          <button type="button" onClick={() => setConfirmDeleteRep(rep)}
+                            style={{ padding: "3px 8px", borderRadius: 20, border: "1px solid #FCA5A5", background: "#FFF5F5", fontSize: 11, cursor: "pointer", color: "#991B1B", fontFamily: "inherit" }}>
+                            ✕
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -190,6 +207,26 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
       </div>
       {showConvoForm && <ConvoForm onSubmit={handleAddConvo} onCancel={() => setShowConvoForm(false)} context={vendor.name} />}
       <ConvoHistory conversations={vendor.conversations} />
+
+      {showDeleteVendorConfirm && (
+        <ConfirmDialog
+          title="Delete this vendor?"
+          message={`"${vendor.name}" and all its conversations will be permanently deleted. This cannot be undone.`}
+          confirmLabel="Delete vendor"
+          onConfirm={async () => { await onDelete(vendor.id); setShowDeleteVendorConfirm(false); onBack(); }}
+          onCancel={() => setShowDeleteVendorConfirm(false)}
+        />
+      )}
+
+      {confirmDeleteRep && (
+        <ConfirmDialog
+          title="Remove this rep?"
+          message={`"${confirmDeleteRep}" will be permanently removed from the system. Leads assigned to them will keep the rep name but they won't appear in dropdowns.`}
+          confirmLabel="Remove rep"
+          onConfirm={async () => { await onDeleteRep(confirmDeleteRep); setConfirmDeleteRep(null); }}
+          onCancel={() => setConfirmDeleteRep(null)}
+        />
+      )}
     </div>
   );
 }

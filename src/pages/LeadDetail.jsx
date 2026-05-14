@@ -7,6 +7,7 @@ import ConvoHistory from "../components/ConvoHistory";
 import { fmt, isOverdue, sendFollowUpEmail } from "../utils/helpers";
 import { STATUS_CONFIG } from "../data/initial";
 import AddableSelect from "../components/AddableSelect";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function EditField({ label, children }) {
   return (
@@ -19,12 +20,13 @@ function EditField({ label, children }) {
 
 const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", width: "100%", boxSizing: "border-box" };
 
-export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversation, vendors, reps, onAddVendor, onAddRep }) {
+export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversation, vendors, reps, onAddVendor, onAddRep, onDelete, isAdmin }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleAddConvo = async (convo) => {
     setSaving(true);
@@ -102,6 +104,12 @@ export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversati
                   style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>
                   ✏️ Edit
                 </button>
+                {isAdmin && (
+                  <button onClick={() => setShowDeleteConfirm(true)}
+                    style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #FCA5A5", background: "#FFF5F5", fontSize: 12, fontWeight: 600, cursor: "pointer", color: "#991B1B", fontFamily: "inherit" }}>
+                    🗑 Delete
+                  </button>
+                )}
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
@@ -177,6 +185,16 @@ export default function LeadDetail({ lead, onBack, onUpdateLead, onAddConversati
         <ConvoForm onSubmit={handleAddConvo} onCancel={() => setShowConvoForm(false)} context={lead.leadName} saving={saving} />
       )}
       <ConvoHistory conversations={lead.conversations} />
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete this lead?"
+          message={`"${lead.leadName}" and all its conversations will be permanently deleted. This cannot be undone.`}
+          confirmLabel="Delete lead"
+          onConfirm={async () => { await onDelete(lead.id); setShowDeleteConfirm(false); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

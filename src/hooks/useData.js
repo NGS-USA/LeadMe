@@ -176,11 +176,29 @@ export function useData() {
     return mapped;
   }
 
+  async function deleteLead(leadId) {
+    const { error } = await supabase.from("leads").delete().eq("id", leadId);
+    if (error) throw error;
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+  }
+
+  async function deleteVendor(vendorId) {
+    const { error } = await supabase.from("vendors").delete().eq("id", vendorId);
+    if (error) throw error;
+    setVendors(prev => prev.filter(v => v.id !== vendorId));
+  }
+
+  async function deleteRep(repName) {
+    const { error } = await supabase.from("reps").delete().eq("name", repName);
+    if (error) throw error;
+    setReps(prev => prev.filter(r => r !== repName));
+  }
+
   return {
     leads, vendors, reps, loading, error,
-    addLead, updateLead,
-    addVendor, updateVendor, updateVendorReps,
-    addRep,
+    addLead, updateLead, deleteLead,
+    addVendor, updateVendor, updateVendorReps, deleteVendor,
+    addRep, deleteRep,
     addLeadConversation, addVendorConversation,
     reload: loadAll,
   };

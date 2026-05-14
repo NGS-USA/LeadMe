@@ -34,15 +34,16 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [authStep, setAuthStep] = useState("idle"); // idle | mfa_verify | mfa_enroll
+  const [authStep, setAuthStep] = useState("idle");
   const [mfaEnrolled, setMfaEnrolled] = useState(null);
   const [forceMfa, setForceMfa] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const {
     leads, vendors, reps, loading: dataLoading, error,
-    addLead, updateLead,
-    addVendor, updateVendor, updateVendorReps,
-    addRep,
+    addLead, updateLead, deleteLead,
+    addVendor, updateVendor, updateVendorReps, deleteVendor,
+    addRep, deleteRep,
     addLeadConversation, addVendorConversation,
   } = useData();
 
@@ -56,15 +57,18 @@ export default function App() {
     }
   }, [mfaRequired]);
 
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("role").eq("id", user.id).single()
+      .then(({ data }) => setIsAdmin(data?.role === "admin"));
+  }, [user]);
+
   const checkPostLoginMfa = async () => {
     const enrolled = await checkMfaEnrolled();
     setMfaEnrolled(enrolled);
-
-    // Check force MFA setting
     const { data } = await supabase.from("settings").select("value").eq("key", "force_mfa").single();
     const force = data?.value === "true";
     setForceMfa(force);
-
     if (enrolled) {
       setAuthStep("mfa_verify");
     } else {
@@ -91,7 +95,6 @@ export default function App() {
     : activeNav === "settings" ? "Manage your account and security"
     : "Coming soon";
 
-  // Auth loading spinner
   if (authLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4" }}>
       <div style={{ width: 32, height: 32, border: "3px solid #E5E4DF", borderTop: "3px solid #534AB7", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -99,15 +102,12 @@ export default function App() {
     </div>
   );
 
-  // Not logged in
   if (!user) return <Login onEmailLogin={signInWithEmail} onMicrosoftLogin={signInWithMicrosoft} />;
 
-  // MFA verify (enrolled users)
   if (authStep === "mfa_verify") return (
     <MfaVerify onVerify={async (code) => { await verifyMfa(code); handleMfaVerified(); }} onSignOut={signOut} />
   );
 
-  // MFA enroll (not yet enrolled)
   if (authStep === "mfa_enroll") return (
     <MfaEnroll
       onEnroll={enrollMfa}
@@ -118,7 +118,6 @@ export default function App() {
     />
   );
 
-  // Data loading
   if (dataLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4", flexDirection: "column", gap: 12 }}>
       <div style={{ width: 32, height: 32, border: "3px solid #E5E4DF", borderTop: "3px solid #534AB7", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -202,9 +201,12 @@ export default function App() {
               onUpdateLead={handleUpdateLead}
               onAddConversation={addLeadConversation}
               vendors={vendorNames}
+              vendorObjects={vendors}
               reps={reps}
               onAddVendor={(name) => addVendor(name)}
               onAddRep={addRep}
+              onDelete={async (id) => { await deleteLead(id); setSelectedLead(null); }}
+              isAdmin={isAdmin}
             />
           ) : (
             <>
@@ -220,6 +222,9 @@ export default function App() {
                   onAddVendorConversation={addVendorConversation}
                   allReps={reps}
                   onUpdateVendorReps={updateVendorReps}
+                  onDeleteVendor={deleteVendor}
+                  onDeleteRep={deleteRep}
+                  isAdmin={isAdmin}
                 />
               )}
               {activeNav === "reports" && <Reports leads={leads} />}
