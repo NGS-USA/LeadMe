@@ -13,12 +13,15 @@ function F({ label, err, children }) {
   );
 }
 
-export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, onAddVendor, onAddRep }) {
+export default function LeadFormPanel({ open, onClose, onSubmit, vendors, vendorObjects, reps, onAddVendor, onAddRep }) {
   const [form, setForm] = useState(EMPTY_LEAD_FORM);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: undefined })); };
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v, ...(k === "vendor" ? { rep: "" } : {}) }));
+    setErrors(e => ({ ...e, [k]: undefined }));
+  };
 
   const validate = () => {
     const e = {};
@@ -40,6 +43,12 @@ export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, 
 
   const handleClose = () => { setForm(EMPTY_LEAD_FORM); setErrors({}); onClose(); };
 
+  // Only show reps linked to the selected vendor
+  const selectedVendorObj = vendorObjects?.find(v => v.name === form.vendor);
+  const availableReps = selectedVendorObj?.reps?.length > 0
+    ? selectedVendorObj.reps
+    : [];
+
   const inp = (err) => ({ fontSize: 13, padding: "8px 10px", borderRadius: 8, border: `1px solid ${err ? "#FCA5A5" : "#C5C4BF"}`, outline: "none", background: err ? "#FFF5F5" : "#fff", width: "100%", boxSizing: "border-box" });
 
   return (
@@ -56,7 +65,15 @@ export default function LeadFormPanel({ open, onClose, onSubmit, vendors, reps, 
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           <F label="Lead / Company Name *" err={errors.leadName}><input value={form.leadName} onChange={e => set("leadName", e.target.value)} placeholder="e.g. Acme Corporation" style={inp(errors.leadName)} /></F>
           <F label="Vendor *" err={errors.vendor}><AddableSelect value={form.vendor} onChange={v => set("vendor", v)} options={vendors} onAddNew={onAddVendor} placeholder="Select vendor" /></F>
-          <F label="Assigned Rep *" err={errors.rep}><AddableSelect value={form.rep} onChange={v => set("rep", v)} options={reps} onAddNew={onAddRep} placeholder="Select rep" /></F>
+          <F label="Assigned Rep *" err={errors.rep}>
+            {!form.vendor ? (
+              <div style={{ fontSize: 12, color: "#9CA3AF", padding: "8px 10px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#F8F7F4" }}>Select a vendor first</div>
+            ) : availableReps.length === 0 ? (
+              <div style={{ fontSize: 12, color: "#991B1B", padding: "8px 10px", borderRadius: 8, border: "1px solid #FCA5A5", background: "#FFF5F5" }}>No reps linked to this vendor. Edit the vendor to assign reps first.</div>
+            ) : (
+              <AddableSelect value={form.rep} onChange={v => set("rep", v)} options={availableReps} onAddNew={onAddRep} placeholder="Select rep" />
+            )}
+          </F>
           <F label="Estimated Value ($)" err={errors.value}><input value={form.value} onChange={e => set("value", e.target.value)} placeholder="e.g. 15000" style={inp(errors.value)} /></F>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <F label="Status"><select value={form.status} onChange={e => set("status", e.target.value)} style={{ fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", background: "#fff" }}>{Object.keys(STATUS_CONFIG).map(s => <option key={s}>{s}</option>)}</select></F>

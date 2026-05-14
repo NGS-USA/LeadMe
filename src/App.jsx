@@ -41,7 +41,7 @@ export default function App() {
   const {
     leads, vendors, reps, loading: dataLoading, error,
     addLead, updateLead,
-    addVendor, updateVendor,
+    addVendor, updateVendor, updateVendorReps,
     addRep,
     addLeadConversation, addVendorConversation,
   } = useData();
@@ -211,7 +211,17 @@ export default function App() {
               {activeNav === "dashboard" && <Dashboard leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "leads" && <Leads leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "conversations" && <Placeholder label="Conversations" />}
-              {activeNav === "vendors" && <Vendors vendors={vendors} leads={leads} onAddVendor={addVendor} onUpdateVendor={updateVendor} onAddVendorConversation={addVendorConversation} />}
+              {activeNav === "vendors" && (
+                <Vendors
+                  vendors={vendors}
+                  leads={leads}
+                  onAddVendor={addVendor}
+                  onUpdateVendor={updateVendor}
+                  onAddVendorConversation={addVendorConversation}
+                  allReps={reps}
+                  onUpdateVendorReps={updateVendorReps}
+                />
+              )}
               {activeNav === "reports" && <Reports leads={leads} />}
               {activeNav === "settings" && (
                 <Settings
@@ -232,6 +242,7 @@ export default function App() {
         onClose={() => setFormOpen(false)}
         onSubmit={addLead}
         vendors={vendorNames}
+        vendorObjects={vendors}
         reps={reps}
         onAddVendor={(name) => addVendor(name)}
         onAddRep={addRep}

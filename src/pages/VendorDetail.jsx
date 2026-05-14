@@ -18,7 +18,7 @@ function EditField({ label, children }) {
 
 const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", width: "100%", boxSizing: "border-box" };
 
-export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation }) {
+export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation, allReps, onUpdateVendorReps }) {
   const [showConvoForm, setShowConvoForm] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -48,6 +48,9 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
     setSavingEdit(true);
     try {
       await onUpdateVendor({ ...vendor, ...editForm });
+      if (editForm.reps !== undefined) {
+        await onUpdateVendorReps(vendor.id, editForm.reps);
+      }
       setEditing(false);
       setEditForm({});
     } finally {
@@ -107,6 +110,26 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
               <EditField label="Partner since">
                 <input type="date" value={editForm.joinedDate} onChange={e => set("joinedDate", e.target.value)} style={inp} />
               </EditField>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Assigned reps</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(allReps || []).map(rep => {
+                    const selected = (editForm.reps || vendor.reps || []).includes(rep);
+                    return (
+                      <button key={rep} type="button"
+                        onClick={() => {
+                          const current = editForm.reps ?? vendor.reps ?? [];
+                          const updated = selected ? current.filter(r => r !== rep) : [...current, rep];
+                          set("reps", updated);
+                        }}
+                        style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${selected ? "#534AB7" : "#E5E4DF"}`, background: selected ? "#EEF0FF" : "#fff", color: selected ? "#534AB7" : "#6B6A65", fontSize: 12, fontWeight: selected ? 600 : 400, cursor: "pointer", fontFamily: "inherit" }}>
+                        {rep}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(allReps || []).length === 0 && <div style={{ fontSize: 12, color: "#9CA3AF" }}>No reps available. Add reps from Settings first.</div>}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
               <button onClick={handleCancelEdit} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>Cancel</button>

@@ -8,19 +8,17 @@ export function useData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ── Load all data on mount ──
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [leadsRes, vendorsRes, repsRes, convosRes] = await Promise.all([
+      const [leadsRes, vendorsRes, repsRes, convosRes, vendorRepsRes] = await Promise.all([
         supabase.from("leads").select("*").order("created_at", { ascending: false }),
         supabase.from("vendors").select("*").order("name"),
         supabase.from("reps").select("*").order("name"),
         supabase.from("conversations").select("*").order("logged_at", { ascending: false }),
+        supabase.from("vendor_reps").select("*"),
       ]);
 
       if (leadsRes.error) throw leadsRes.error;
@@ -28,25 +26,20 @@ export function useData() {
       if (repsRes.error) throw repsRes.error;
       if (convosRes.error) throw convosRes.error;
 
-      // Attach conversations to leads
       const leadsWithConvos = leadsRes.data.map(l => ({
         ...l,
         leadName: l.lead_name,
         receivedAt: l.received_at,
         followUpDate: l.follow_up_date,
         vendor: l.vendor_name,
-        conversations: convosRes.data
-          .filter(c => c.lead_id === l.id)
-          .map(mapConvo),
+        conversations: convosRes.data.filter(c => c.lead_id === l.id).map(mapConvo),
       }));
 
-      // Attach conversations to vendors
       const vendorsWithConvos = vendorsRes.data.map(v => ({
         ...v,
         joinedDate: v.joined_date,
-        conversations: convosRes.data
-          .filter(c => c.vendor_id === v.id)
-          .map(mapConvo),
+        conversations: convosRes.data.filter(c => c.vendor_id === v.id).map(mapConvo),
+        reps: (vendorRepsRes.data || []).filter(vr => vr.vendor_id === v.id).map(vr => vr.rep_name),
       }));
 
       setLeads(leadsWithConvos);
@@ -73,7 +66,6 @@ export function useData() {
     };
   }
 
-  // ── Add lead ──
   async function addLead(form) {
     const vendor = vendors.find(v => v.name === form.vendor);
     const { data, error } = await supabase.from("leads").insert({
@@ -93,7 +85,6 @@ export function useData() {
     return newLead;
   }
 
-  // ── Update lead ──
   async function updateLead(lead) {
     const { error } = await supabase.from("leads").update({
       vendor_name: lead.vendor,
@@ -109,20 +100,17 @@ export function useData() {
     setLeads(prev => prev.map(l => l.id === lead.id ? lead : l));
   }
 
-  // ── Add vendor ──
   async function addVendor(name) {
     const { data, error } = await supabase.from("vendors").insert({
-      name,
-      status: "Active",
+      name, status: "Active",
       joined_date: new Date().toISOString().slice(0, 10),
     }).select().single();
     if (error) throw error;
-    const newVendor = { ...data, joinedDate: data.joined_date, conversations: [] };
+    const newVendor = { ...data, joinedDate: data.joined_date, conversations: [], reps: [] };
     setVendors(prev => [...prev, newVendor]);
     return newVendor;
   }
 
-  // ── Update vendor ──
   async function updateVendor(vendor) {
     const { error } = await supabase.from("vendors").update({
       name: vendor.name,
@@ -133,22 +121,29 @@ export function useData() {
     setVendors(prev => prev.map(v => v.id === vendor.id ? vendor : v));
   }
 
-  // ── Add rep ──
+  async function updateVendorReps(vendorId, repNames) {
+    // Delete existing and re-insert
+    await supabase.from("vendor_reps").delete().eq("vendor_id", vendorId);
+    if (repNames.length > 0) {
+      const rows = repNames.map(rep_name => ({ vendor_id: vendorId, rep_name }));
+      const { error } = await supabase.from("vendor_reps").insert(rows);
+      if (error) throw error;
+    }
+    setVendors(prev => prev.map(v => v.id === vendorId ? { ...v, reps: repNames } : v));
+  }
+
   async function addRep(name) {
     const { error } = await supabase.from("reps").insert({ name });
     if (error && !error.message.includes("unique")) throw error;
     setReps(prev => prev.includes(name) ? prev : [...prev, name]);
   }
 
-  // ── Add conversation to lead ──
   async function addLeadConversation(leadId, convo) {
     const { data, error } = await supabase.from("conversations").insert({
-      lead_id: leadId,
-      vendor_id: null,
+      lead_id: leadId, vendor_id: null,
       contact_name: convo.contactName,
       contact_role: convo.contactRole || null,
-      method: convo.method,
-      summary: convo.summary,
+      method: convo.method, summary: convo.summary,
       outcome: convo.outcome,
       follow_up_date: convo.followUpDate || null,
       date: convo.date,
@@ -162,15 +157,12 @@ export function useData() {
     return mapped;
   }
 
-  // ── Add conversation to vendor ──
   async function addVendorConversation(vendorId, convo) {
     const { data, error } = await supabase.from("conversations").insert({
-      vendor_id: vendorId,
-      lead_id: null,
+      vendor_id: vendorId, lead_id: null,
       contact_name: convo.contactName,
       contact_role: convo.contactRole || null,
-      method: convo.method,
-      summary: convo.summary,
+      method: convo.method, summary: convo.summary,
       outcome: convo.outcome,
       follow_up_date: convo.followUpDate || null,
       date: convo.date,
@@ -187,7 +179,7 @@ export function useData() {
   return {
     leads, vendors, reps, loading, error,
     addLead, updateLead,
-    addVendor, updateVendor,
+    addVendor, updateVendor, updateVendorReps,
     addRep,
     addLeadConversation, addVendorConversation,
     reload: loadAll,
