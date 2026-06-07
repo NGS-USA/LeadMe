@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { databases, db, col, ID, Query } from "../lib/appwrite";
+import { account } from "../lib/appwrite";
 import { adminApi } from "../lib/adminApi";
 import { STATUS_CONFIG } from "../data/initial";
 
@@ -314,23 +315,35 @@ function AppSettingsSection() {
   useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
-    const { data } = await supabase.from("settings").select("key, value")
-      .in("key", ["default_lead_status", "default_lead_priority", "notify_followup_day_of"]);
-    if (data) {
+    try {
+      const res = await databases.listDocuments(db, col.settings, [
+        Query.equal("key", ["default_lead_status", "default_lead_priority", "notify_followup_day_of"]),
+      ]);
       const map = {};
-      data.forEach(s => { map[s.key] = s.key === "notify_followup_day_of" ? s.value === "true" : s.value; });
+      res.documents.forEach(s => {
+        map[s.key] = s.key === "notify_followup_day_of" ? s.value === "true" : s.value;
+      });
       setSettings(prev => ({ ...prev, ...map }));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const saveSetting = async (key, value) => {
     setSaving(true);
-    await supabase.from("settings").upsert({ key, value: String(value) });
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setSuccess("Settings saved");
-    setTimeout(() => setSuccess(null), 3000);
-    setSaving(false);
+    try {
+      const existing = await databases.listDocuments(db, col.settings, [Query.equal("key", key)]);
+      if (existing.total > 0) {
+        await databases.updateDocument(db, col.settings, existing.documents[0].$id, { value: String(value) });
+      } else {
+        await databases.createDocument(db, col.settings, ID.unique(), { key, value: String(value) });
+      }
+      setSettings(prev => ({ ...prev, [key]: value }));
+      setSuccess("Settings saved");
+      setTimeout(() => setSuccess(null), 3000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", boxSizing: "border-box" };
@@ -340,7 +353,6 @@ function AppSettingsSection() {
   return (
     <>
       {success && <div style={{ background: "#DCFCE7", border: "1px solid #BBF7D0", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#166534", marginBottom: 16 }}>{success}</div>}
-
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -356,7 +368,6 @@ function AppSettingsSection() {
             </select>
           </div>
         </div>
-
         <div style={{ borderTop: "1px solid #F3F2EE", paddingTop: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1918", marginBottom: 12 }}>Follow-up reminders</div>
           <ToggleRow
@@ -389,10 +400,12 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      const profileRes = await databases.listDocuments(db, col.profiles, [Query.equal("user_id", user.$id)]);
+      const profile = profileRes.documents[0];
       setIsAdmin(profile?.role === "admin");
-      const { data: setting } = await supabase.from("settings").select("value").eq("key", "force_mfa").single();
-      if (setting) setForceMfa(setting.value === "true");
+
+      const settingRes = await databases.listDocuments(db, col.settings, [Query.equal("key", "force_mfa")]);
+      if (settingRes.total > 0) setForceMfa(settingRes.documents[0].value === "true");
     } finally {
       setLoading(false);
     }
@@ -402,7 +415,12 @@ export default function Settings({ user, onEnroll, onConfirmEnrollment, onUnenro
     setSaving(true);
     const newVal = !forceMfa;
     try {
-      await supabase.from("settings").upsert({ key: "force_mfa", value: String(newVal) });
+      const existing = await databases.listDocuments(db, col.settings, [Query.equal("key", "force_mfa")]);
+      if (existing.total > 0) {
+        await databases.updateDocument(db, col.settings, existing.documents[0].$id, { value: String(newVal) });
+      } else {
+        await databases.createDocument(db, col.settings, ID.unique(), { key: "force_mfa", value: String(newVal) });
+      }
       setForceMfa(newVal);
       flash(`Force MFA ${newVal ? "enabled" : "disabled"} for all users.`);
     } catch { flash("Failed to update setting.", "error"); }

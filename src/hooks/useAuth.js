@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { account, ID } from "../lib/appwrite";
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -8,115 +8,83 @@ export function useAuth() {
   const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
-    // Track if initial session load is done
-    let initialLoad = true;
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      initialLoad = false;
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      // Only trigger MFA on explicit password sign in, not token refresh or session restore
-      if (event === "SIGNED_IN" && !initialLoad && session?.user?.last_sign_in_at) {
-        const signInTime = new Date(session.user.last_sign_in_at).getTime();
-        const now = Date.now();
-        const isRecentLogin = now - signInTime < 10000; // within 10 seconds
-        if (isRecentLogin) setMfaRequired(true);
-      }
-      if (event === "SIGNED_OUT") {
-        setMfaRequired(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    loadSession();
   }, []);
 
-  // Sign in with email/password
-  const signInWithEmail = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-
-    // Check if MFA is required
-    if (data.session?.user?.factors?.length > 0) {
-      setMfaRequired(true);
+  const loadSession = async () => {
+    try {
+      const sess = await account.getSession("current");
+      const usr = await account.get();
+      setSession(sess);
+      setUser(usr);
+    } catch {
+      setSession(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    return data;
   };
 
-  // Microsoft login — stubbed, ready to activate
+  const signInWithEmail = async (email, password) => {
+    const sess = await account.createEmailPasswordSession(email, password);
+    const usr = await account.get();
+    setSession(sess);
+    setUser(usr);
+
+    // Check if MFA is required
+    const factors = await account.listMfaFactors();
+    if (factors.totp) {
+      setMfaRequired(true);
+    }
+    return { session: sess, user: usr };
+  };
+
   const signInWithMicrosoft = async () => {
-    // TODO: Uncomment when Azure tenant is configured in Supabase
-    // const { error } = await supabase.auth.signInWithOAuth({
-    //   provider: "azure",
-    //   options: {
-    //     scopes: "email profile",
-    //     redirectTo: window.location.origin,
-    //   },
-    // });
-    // if (error) throw error;
     throw new Error("Microsoft login coming soon — contact your admin.");
   };
 
-  // Verify TOTP MFA code
   const verifyMfa = async (code) => {
-    const factors = await supabase.auth.mfa.listFactors();
-    const totpFactor = factors.data?.totp?.[0];
-    if (!totpFactor) throw new Error("No MFA factor found");
-
-    const challenge = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
-    if (challenge.error) throw challenge.error;
-
-    const { error } = await supabase.auth.mfa.verify({
-      factorId: totpFactor.id,
-      challengeId: challenge.data.id,
-      code,
-    });
-    if (error) throw error;
+    await account.createMfaChallenge("totp");
+    const challenges = await account.listMfaChallenges();
+    const challengeId = challenges.challenges[0].$id;
+    await account.updateMfaChallenge(challengeId, code);
     setMfaRequired(false);
   };
 
-  // Enroll MFA — returns QR code and secret
   const enrollMfa = async () => {
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", issuer: "LeadTrack" });
-    if (error) throw error;
-    return data;
+    const result = await account.createMfaAuthenticator("totp");
+    return {
+      id: "totp",
+      totp: {
+        qr_code: result.uri,
+        secret: result.secret,
+      },
+    };
   };
 
-  // Confirm MFA enrollment with first code
   const confirmMfaEnrollment = async (factorId, code) => {
-    const challenge = await supabase.auth.mfa.challenge({ factorId });
-    if (challenge.error) throw challenge.error;
-
-    const { error } = await supabase.auth.mfa.verify({
-      factorId,
-      challengeId: challenge.data.id,
-      code,
-    });
-    if (error) throw error;
+    await account.updateMfaAuthenticator("totp", code);
   };
 
-  // Unenroll MFA
   const unenrollMfa = async () => {
-    const factors = await supabase.auth.mfa.listFactors();
-    const totpFactor = factors.data?.totp?.[0];
-    if (!totpFactor) return;
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: totpFactor.id });
-    if (error) throw error;
+    await account.deleteMfaAuthenticator("totp");
   };
 
-  // Check if user has MFA enrolled
   const checkMfaEnrolled = async () => {
-    const factors = await supabase.auth.mfa.listFactors();
-    return (factors.data?.totp?.length ?? 0) > 0;
+    try {
+      const factors = await account.listMfaFactors();
+      return !!factors.totp;
+    } catch {
+      return false;
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await account.deleteSession("current");
+    } catch {}
+    setUser(null);
+    setSession(null);
     setMfaRequired(false);
   };
 

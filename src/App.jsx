@@ -14,15 +14,9 @@ import { NAV_ITEMS } from "./data/initial";
 import { isOverdue } from "./utils/helpers";
 import { useData } from "./hooks/useData";
 import { useAuth } from "./hooks/useAuth";
-import { supabase } from "./lib/supabase";
-import AuthConfirm from "./pages/AuthConfirm";
+import { databases, db, col, Query } from "./lib/appwrite";
 
 export default function App() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("token_hash") && params.get("type") === "invite") {
-    return <AuthConfirm />;
-  }
-
   const {
     user, session, loading: authLoading, mfaRequired,
     signInWithEmail, signInWithMicrosoft, signOut,
@@ -44,7 +38,6 @@ export default function App() {
     addLead, updateLead, deleteLead,
     addVendor, updateVendor, updateVendorReps, deleteVendor,
     addRep, deleteRep,
-    addLeadConversation, addVendorConversation,
   } = useData();
 
   useEffect(() => {
@@ -59,16 +52,22 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("role").eq("id", user.id).single()
-      .then(({ data }) => setIsAdmin(data?.role === "admin"));
+    databases.listDocuments(db, col.profiles, [Query.equal("user_id", user.$id)])
+      .then(res => {
+        const profile = res.documents[0];
+        setIsAdmin(profile?.role === "admin");
+      })
+      .catch(() => {});
   }, [user]);
 
   const checkPostLoginMfa = async () => {
     const enrolled = await checkMfaEnrolled();
     setMfaEnrolled(enrolled);
-    const { data } = await supabase.from("settings").select("value").eq("key", "force_mfa").single();
-    const force = data?.value === "true";
-    setForceMfa(force);
+    try {
+      const res = await databases.listDocuments(db, col.settings, [Query.equal("key", "force_mfa")]);
+      const force = res.documents[0]?.value === "true";
+      setForceMfa(force);
+    } catch {}
     if (enrolled) {
       setAuthStep("mfa_verify");
     } else {
@@ -121,7 +120,7 @@ export default function App() {
   if (dataLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4", flexDirection: "column", gap: 12 }}>
       <div style={{ width: 32, height: 32, border: "3px solid #E5E4DF", borderTop: "3px solid #534AB7", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <div style={{ fontSize: 13, color: "#9CA3AF" }}>Loading LeadTrack…</div>
+      <div style={{ fontSize: 13, color: "#9CA3AF" }}>Loading LeadMe…</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -140,8 +139,8 @@ export default function App() {
       <div style={{ width: sidebarOpen ? 210 : 52, flexShrink: 0, background: "#223255", display: "flex", flexDirection: "column", transition: "width 0.2s ease", overflow: "hidden" }}>
         <div style={{ padding: "16px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           {sidebarOpen
-            ? <img src="/logo.png" alt="LeadTrack" style={{ width: "100%", objectFit: "contain" }} />
-            : <img src="/logo.png" alt="LeadTrack" style={{ width: 36, height: 36, borderRadius: 6, objectFit: "contain" }} />
+            ? <img src="/logo.png" alt="LeadMe" style={{ width: "100%", objectFit: "contain" }} />
+            : <img src="/logo.png" alt="LeadMe" style={{ width: 36, height: 36, borderRadius: 6, objectFit: "contain" }} />
           }
         </div>
         <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -149,7 +148,7 @@ export default function App() {
             <button key={item.id} onClick={() => { setActiveNav(item.id); setSelectedLead(null); }}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 9px", borderRadius: 7, border: "none", cursor: "pointer", background: activeNav === item.id ? "rgba(83,74,183,0.25)" : "transparent", color: activeNav === item.id ? "#A09CF5" : "rgba(255,255,255,0.45)", fontFamily: "inherit", fontSize: 13, fontWeight: activeNav === item.id ? 600 : 400, textAlign: "left", whiteSpace: "nowrap" }}>
               <span style={{ fontSize: 15, flexShrink: 0 }}>
-                {item.id === "dashboard" ? "▦" : item.id === "leads" ? "☰" : item.id === "conversations" ? "💬" : item.id === "vendors" ? "🏢" : item.id === "reports" ? "📊" : "⚙️"}
+                {item.id === "dashboard" ? "▦" : item.id === "leads" ? "☰" : item.id === "vendors" ? "🏢" : item.id === "reports" ? "📊" : "⚙️"}
               </span>
               {sidebarOpen && item.label}
               {item.id === "dashboard" && overdueCount > 0 && (
@@ -199,7 +198,6 @@ export default function App() {
               lead={selectedLead}
               onBack={() => setSelectedLead(null)}
               onUpdateLead={handleUpdateLead}
-              onAddConversation={addLeadConversation}
               vendors={vendorNames}
               vendorObjects={vendors}
               reps={reps}
@@ -212,18 +210,17 @@ export default function App() {
             <>
               {activeNav === "dashboard" && <Dashboard leads={leads} onSelectLead={handleSelectLead} />}
               {activeNav === "leads" && <Leads leads={leads} onSelectLead={handleSelectLead} />}
-              {activeNav === "conversations" && <Placeholder label="Conversations" />}
               {activeNav === "vendors" && (
                 <Vendors
                   vendors={vendors}
                   leads={leads}
                   onAddVendor={addVendor}
                   onUpdateVendor={updateVendor}
-                  onAddVendorConversation={addVendorConversation}
                   allReps={reps}
                   onUpdateVendorReps={updateVendorReps}
                   onDeleteVendor={deleteVendor}
                   onDeleteRep={deleteRep}
+                  onAddRep={addRep}
                   isAdmin={isAdmin}
                 />
               )}

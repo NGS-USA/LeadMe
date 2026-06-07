@@ -2,8 +2,6 @@ import { useState } from "react";
 import StatusBadge from "../components/StatusBadge";
 import PriorityDot from "../components/PriorityDot";
 import FollowUpBadge from "../components/FollowUpBadge";
-import ConvoForm from "../components/ConvoForm";
-import ConvoHistory from "../components/ConvoHistory";
 import LeadDetail from "./LeadDetail";
 import { fmt, fmtShort, isOverdue } from "../utils/helpers";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -19,26 +17,23 @@ function EditField({ label, children }) {
 
 const inp = { fontSize: 13, padding: "8px 10px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", background: "#fff", width: "100%", boxSizing: "border-box" };
 
-export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, onAddConversation, allReps, onUpdateVendorReps, onDelete, onDeleteRep, isAdmin }) {
-  const [showConvoForm, setShowConvoForm] = useState(false);
+export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, allReps, onUpdateVendorReps, onDelete, onDeleteRep, onAddRep, isAdmin }) {
   const [selectedLead, setSelectedLead] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
   const [showDeleteVendorConfirm, setShowDeleteVendorConfirm] = useState(false);
   const [confirmDeleteRep, setConfirmDeleteRep] = useState(null);
+  const [showAddRep, setShowAddRep] = useState(false);
+  const [newRepName, setNewRepName] = useState("");
+  const [addingRep, setAddingRep] = useState(false);
 
   const vendorLeads = leads.filter(l => l.vendor === vendor.name);
-  const totalValue = vendorLeads.reduce((a, l) => a + l.value, 0);
+  const totalValue = vendorLeads.reduce((a, l) => a + (l.value || 0), 0);
   const wonLeads = vendorLeads.filter(l => l.status === "Won");
-  const wonValue = wonLeads.reduce((a, l) => a + l.value, 0);
+  const wonValue = wonLeads.reduce((a, l) => a + (l.value || 0), 0);
   const winRate = vendorLeads.length > 0 ? Math.round((wonLeads.length / vendorLeads.length) * 100) : 0;
   const activeLeads = vendorLeads.filter(l => !["Won","Lost"].includes(l.status));
-
-  const handleAddConvo = async (convo) => {
-    await onAddConversation(vendor.id, convo);
-    setShowConvoForm(false);
-  };
 
   const handleStartEdit = () => {
     setEditForm({ name: vendor.name, status: vendor.status, joinedDate: vendor.joinedDate });
@@ -61,9 +56,28 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
     }
   };
 
+  const handleAddRep = async () => {
+    const name = newRepName.trim();
+    if (!name) return;
+    setAddingRep(true);
+    try {
+      await onAddRep(name);
+      setNewRepName("");
+      setShowAddRep(false);
+    } finally {
+      setAddingRep(false);
+    }
+  };
+
   const set = (k, v) => setEditForm(f => ({ ...f, [k]: v }));
 
-  if (selectedLead) return <LeadDetail lead={selectedLead} onBack={() => setSelectedLead(null)} onUpdateLead={(updated) => setSelectedLead(updated)} onAddConversation={() => {}} />;
+  if (selectedLead) return (
+    <LeadDetail
+      lead={selectedLead}
+      onBack={() => setSelectedLead(null)}
+      onUpdateLead={(updated) => setSelectedLead(updated)}
+    />
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 900, margin: "0 auto" }}>
@@ -91,7 +105,7 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
-              {[["Total leads", vendorLeads.length], ["Active leads", activeLeads.length], ["Total value", fmtShort(totalValue)], ["Won value", fmtShort(wonValue)], ["Win rate", `${winRate}%`], ["Conversations", vendor.conversations.length]].map(([label, val]) => (
+              {[["Total leads", vendorLeads.length], ["Active leads", activeLeads.length], ["Total value", fmtShort(totalValue)], ["Won value", fmtShort(wonValue)], ["Win rate", `${winRate}%`]].map(([label, val]) => (
                 <div key={label}>
                   <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "#1A1918" }}>{val}</div>
@@ -119,8 +133,39 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
               <EditField label="Partner since">
                 <input type="date" value={editForm.joinedDate} onChange={e => set("joinedDate", e.target.value)} style={inp} />
               </EditField>
+
               <div style={{ gridColumn: "1 / -1" }}>
-                <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Assigned reps</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Assigned reps</div>
+                  {!showAddRep && (
+                    <button type="button" onClick={() => setShowAddRep(true)}
+                      style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: "none", background: "#534AB7", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+                      + Add rep
+                    </button>
+                  )}
+                </div>
+
+                {showAddRep && (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    <input
+                      autoFocus
+                      value={newRepName}
+                      onChange={e => setNewRepName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleAddRep(); if (e.key === "Escape") { setShowAddRep(false); setNewRepName(""); } }}
+                      placeholder="Full name…"
+                      style={{ ...inp, width: 200 }}
+                    />
+                    <button type="button" onClick={handleAddRep} disabled={addingRep || !newRepName.trim()}
+                      style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#534AB7", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      {addingRep ? "Adding…" : "Add"}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddRep(false); setNewRepName(""); }}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E4DF", background: "#fff", fontSize: 13, cursor: "pointer", color: "#6B6A65", fontFamily: "inherit" }}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(allReps || []).map(rep => {
                     const selected = (editForm.reps || vendor.reps || []).includes(rep);
@@ -145,7 +190,7 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
                     );
                   })}
                 </div>
-                {(allReps || []).length === 0 && <div style={{ fontSize: 12, color: "#9CA3AF" }}>No reps available. Add reps from Settings first.</div>}
+                {(allReps || []).length === 0 && <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>No reps yet. Use the Add rep button above to create one.</div>}
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20, paddingTop: 16, borderTop: "1px solid #F3F2EE" }}>
@@ -197,21 +242,10 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1918" }}>Vendor Conversation Log</div>
-        {!showConvoForm && (
-          <button onClick={() => setShowConvoForm(true)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, padding: "7px 14px", borderRadius: 8, background: "#534AB7", border: "none", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
-            + Log Conversation
-          </button>
-        )}
-      </div>
-      {showConvoForm && <ConvoForm onSubmit={handleAddConvo} onCancel={() => setShowConvoForm(false)} context={vendor.name} />}
-      <ConvoHistory conversations={vendor.conversations} />
-
       {showDeleteVendorConfirm && (
         <ConfirmDialog
           title="Delete this vendor?"
-          message={`"${vendor.name}" and all its conversations will be permanently deleted. This cannot be undone.`}
+          message={`"${vendor.name}" will be permanently deleted. This cannot be undone.`}
           confirmLabel="Delete vendor"
           onConfirm={async () => { await onDelete(vendor.id); setShowDeleteVendorConfirm(false); onBack(); }}
           onCancel={() => setShowDeleteVendorConfirm(false)}
@@ -221,7 +255,7 @@ export default function VendorDetail({ vendor, leads, onBack, onUpdateVendor, on
       {confirmDeleteRep && (
         <ConfirmDialog
           title="Remove this rep?"
-          message={`"${confirmDeleteRep}" will be permanently removed from the system. Leads assigned to them will keep the rep name but they won't appear in dropdowns.`}
+          message={`"${confirmDeleteRep}" will be permanently removed from the system.`}
           confirmLabel="Remove rep"
           onConfirm={async () => { await onDeleteRep(confirmDeleteRep); setConfirmDeleteRep(null); }}
           onCancel={() => setConfirmDeleteRep(null)}

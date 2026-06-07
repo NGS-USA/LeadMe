@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { databases, db, col, ID, Query } from "../lib/appwrite";
 
 export function useData() {
   const [leads, setLeads] = useState([]);
@@ -13,38 +13,32 @@ export function useData() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [leadsRes, vendorsRes, repsRes, convosRes, vendorRepsRes] = await Promise.all([
-        supabase.from("leads").select("*").order("created_at", { ascending: false }),
-        supabase.from("vendors").select("*").order("name"),
-        supabase.from("reps").select("*").order("name"),
-        supabase.from("conversations").select("*").order("logged_at", { ascending: false }),
-        supabase.from("vendor_reps").select("*"),
+      const [leadsRes, vendorsRes, repsRes] = await Promise.all([
+        databases.listDocuments(db, col.leads, [Query.orderDesc("$createdAt")]),
+        databases.listDocuments(db, col.vendors, [Query.orderAsc("name")]),
+        databases.listDocuments(db, col.reps, [Query.orderAsc("name")]),
       ]);
 
-      if (leadsRes.error) throw leadsRes.error;
-      if (vendorsRes.error) throw vendorsRes.error;
-      if (repsRes.error) throw repsRes.error;
-      if (convosRes.error) throw convosRes.error;
-
-      const leadsWithConvos = leadsRes.data.map(l => ({
+      const leadsWithMeta = leadsRes.documents.map(l => ({
         ...l,
-        leadName: l.lead_name,
-        receivedAt: l.received_at,
+        id: l.$id,
+        leadName: l.client_name,
+        receivedAt: l.$createdAt,
         followUpDate: l.follow_up_date,
-        vendor: l.vendor_name,
-        conversations: convosRes.data.filter(c => c.lead_id === l.id).map(mapConvo),
+        vendor: l.vendor_id,
+        rep: l.rep_id,
       }));
 
-      const vendorsWithConvos = vendorsRes.data.map(v => ({
+      const vendorsMapped = vendorsRes.documents.map(v => ({
         ...v,
-        joinedDate: v.joined_date,
-        conversations: convosRes.data.filter(c => c.vendor_id === v.id).map(mapConvo),
-        reps: (vendorRepsRes.data || []).filter(vr => vr.vendor_id === v.id).map(vr => vr.rep_name),
+        id: v.$id,
+        joinedDate: v.$createdAt,
+        reps: [],
       }));
 
-      setLeads(leadsWithConvos);
-      setVendors(vendorsWithConvos);
-      setReps(repsRes.data.map(r => r.name));
+      setLeads(leadsWithMeta);
+      setVendors(vendorsMapped);
+      setReps(repsRes.documents.map(r => r.name));
     } catch (err) {
       console.error("Error loading data:", err);
       setError(err.message);
@@ -53,144 +47,100 @@ export function useData() {
     }
   }
 
-  function mapConvo(c) {
-    return {
-      id: c.id,
-      date: c.date,
-      contactName: c.contact_name,
-      contactRole: c.contact_role,
-      method: c.method,
-      summary: c.summary,
-      outcome: c.outcome,
-      followUpDate: c.follow_up_date,
-    };
-  }
-
   async function addLead(form) {
     const vendor = vendors.find(v => v.name === form.vendor);
-    const { data, error } = await supabase.from("leads").insert({
-      vendor_id: vendor?.id || null,
-      vendor_name: form.vendor,
-      rep: form.rep,
-      lead_name: form.leadName,
+    const doc = await databases.createDocument(db, col.leads, ID.unique(), {
+      vendor_id: vendor?.name || form.vendor || null,
+      rep_id: form.rep || null,
+      client_name: form.leadName,
       value: Number(form.value) || 0,
-      status: form.status,
-      priority: form.priority,
-      received_at: form.receivedAt,
+      stage: form.status || "New",
+      status: form.status || "New",
+      notes: form.notes || null,
       follow_up_date: form.followUpDate || null,
-    }).select().single();
-    if (error) throw error;
-    const newLead = { ...data, leadName: data.lead_name, receivedAt: data.received_at, followUpDate: data.follow_up_date, vendor: data.vendor_name, conversations: [] };
+    });
+    const newLead = {
+      ...doc,
+      id: doc.$id,
+      leadName: doc.client_name,
+      receivedAt: doc.$createdAt,
+      followUpDate: doc.follow_up_date,
+      vendor: doc.vendor_id,
+      rep: doc.rep_id,
+    };
     setLeads(prev => [newLead, ...prev]);
     return newLead;
   }
 
   async function updateLead(lead) {
-    const { error } = await supabase.from("leads").update({
-      vendor_name: lead.vendor,
-      rep: lead.rep,
-      lead_name: lead.leadName,
+    await databases.updateDocument(db, col.leads, lead.id, {
+      vendor_id: lead.vendor || null,
+      rep_id: lead.rep || null,
+      client_name: lead.leadName,
       value: lead.value,
-      status: lead.status,
-      priority: lead.priority,
-      received_at: lead.receivedAt,
+      stage: lead.status || "New",
+      status: lead.status || "New",
+      notes: lead.notes || null,
       follow_up_date: lead.followUpDate || null,
-    }).eq("id", lead.id);
-    if (error) throw error;
+    });
     setLeads(prev => prev.map(l => l.id === lead.id ? lead : l));
   }
 
+  async function deleteLead(leadId) {
+    await databases.deleteDocument(db, col.leads, leadId);
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+  }
+
   async function addVendor(name) {
-    const { data, error } = await supabase.from("vendors").insert({
-      name, status: "Active",
-      joined_date: new Date().toISOString().slice(0, 10),
-    }).select().single();
-    if (error) throw error;
-    const newVendor = { ...data, joinedDate: data.joined_date, conversations: [], reps: [] };
+    const doc = await databases.createDocument(db, col.vendors, ID.unique(), {
+      name,
+      contact_name: null,
+      contact_email: null,
+      contact_phone: null,
+      notes: null,
+    });
+    const newVendor = {
+      ...doc,
+      id: doc.$id,
+      joinedDate: doc.$createdAt,
+      reps: [],
+    };
     setVendors(prev => [...prev, newVendor]);
     return newVendor;
   }
 
   async function updateVendor(vendor) {
-    const { error } = await supabase.from("vendors").update({
+    await databases.updateDocument(db, col.vendors, vendor.id, {
       name: vendor.name,
-      status: vendor.status,
-      joined_date: vendor.joinedDate,
-    }).eq("id", vendor.id);
-    if (error) throw error;
+      contact_name: vendor.contact_name || null,
+      contact_email: vendor.contact_email || null,
+      contact_phone: vendor.contact_phone || null,
+      notes: vendor.notes || null,
+    });
     setVendors(prev => prev.map(v => v.id === vendor.id ? vendor : v));
   }
 
+  async function deleteVendor(vendorId) {
+    await databases.deleteDocument(db, col.vendors, vendorId);
+    setVendors(prev => prev.filter(v => v.id !== vendorId));
+  }
+
   async function updateVendorReps(vendorId, repNames) {
-    // Delete existing and re-insert
-    await supabase.from("vendor_reps").delete().eq("vendor_id", vendorId);
-    if (repNames.length > 0) {
-      const rows = repNames.map(rep_name => ({ vendor_id: vendorId, rep_name }));
-      const { error } = await supabase.from("vendor_reps").insert(rows);
-      if (error) throw error;
-    }
     setVendors(prev => prev.map(v => v.id === vendorId ? { ...v, reps: repNames } : v));
   }
 
   async function addRep(name) {
-    const { error } = await supabase.from("reps").insert({ name });
-    if (error && !error.message.includes("unique")) throw error;
+    const existing = await databases.listDocuments(db, col.reps, [Query.equal("name", name)]);
+    if (existing.total > 0) return;
+    await databases.createDocument(db, col.reps, ID.unique(), { name, vendor_id: null });
     setReps(prev => prev.includes(name) ? prev : [...prev, name]);
   }
 
-  async function addLeadConversation(leadId, convo) {
-    const { data, error } = await supabase.from("conversations").insert({
-      lead_id: leadId, vendor_id: null,
-      contact_name: convo.contactName,
-      contact_role: convo.contactRole || null,
-      method: convo.method, summary: convo.summary,
-      outcome: convo.outcome,
-      follow_up_date: convo.followUpDate || null,
-      date: convo.date,
-    }).select().single();
-    if (error) throw error;
-    const mapped = mapConvo(data);
-    setLeads(prev => prev.map(l => l.id === leadId
-      ? { ...l, conversations: [mapped, ...l.conversations], followUpDate: convo.followUpDate || l.followUpDate }
-      : l
-    ));
-    return mapped;
-  }
-
-  async function addVendorConversation(vendorId, convo) {
-    const { data, error } = await supabase.from("conversations").insert({
-      vendor_id: vendorId, lead_id: null,
-      contact_name: convo.contactName,
-      contact_role: convo.contactRole || null,
-      method: convo.method, summary: convo.summary,
-      outcome: convo.outcome,
-      follow_up_date: convo.followUpDate || null,
-      date: convo.date,
-    }).select().single();
-    if (error) throw error;
-    const mapped = mapConvo(data);
-    setVendors(prev => prev.map(v => v.id === vendorId
-      ? { ...v, conversations: [mapped, ...v.conversations] }
-      : v
-    ));
-    return mapped;
-  }
-
-  async function deleteLead(leadId) {
-    const { error } = await supabase.from("leads").delete().eq("id", leadId);
-    if (error) throw error;
-    setLeads(prev => prev.filter(l => l.id !== leadId));
-  }
-
-  async function deleteVendor(vendorId) {
-    const { error } = await supabase.from("vendors").delete().eq("id", vendorId);
-    if (error) throw error;
-    setVendors(prev => prev.filter(v => v.id !== vendorId));
-  }
-
   async function deleteRep(repName) {
-    const { error } = await supabase.from("reps").delete().eq("name", repName);
-    if (error) throw error;
+    const existing = await databases.listDocuments(db, col.reps, [Query.equal("name", repName)]);
+    if (existing.total > 0) {
+      await databases.deleteDocument(db, col.reps, existing.documents[0].$id);
+    }
     setReps(prev => prev.filter(r => r !== repName));
   }
 
@@ -199,7 +149,6 @@ export function useData() {
     addLead, updateLead, deleteLead,
     addVendor, updateVendor, updateVendorReps, deleteVendor,
     addRep, deleteRep,
-    addLeadConversation, addVendorConversation,
     reload: loadAll,
   };
 }

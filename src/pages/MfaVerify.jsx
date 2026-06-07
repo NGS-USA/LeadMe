@@ -11,7 +11,7 @@ export default function MfaVerify({ onVerify, onSignOut }) {
     setLoading(true);
     try {
       await onVerify(code.replace(/\s/g, ""));
-    } catch (err) {
+    } catch {
       setError("Invalid code. Please try again.");
       setCode("");
     } finally {
@@ -22,24 +22,26 @@ export default function MfaVerify({ onVerify, onSignOut }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#F8F7F4", fontFamily: "'DM Sans','Helvetica Neue',sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 400, padding: "0 20px" }}>
+
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <img src="/logo.png" alt="LeadTrack" style={{ height: 48, objectFit: "contain" }} />
+          <img src="/logo.png" alt="LeadMe" style={{ height: 48, objectFit: "contain" }} />
         </div>
 
         <div style={{ background: "#fff", border: "1px solid #E5E4DF", borderRadius: 16, padding: "32px 28px", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: "#1A1918", marginBottom: 4 }}>Two-factor authentication</div>
-          <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 24 }}>Open your authenticator app and enter the 6-digit code for LeadTrack.</div>
+          <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 24 }}>Enter the 6-digit code from your authenticator app.</div>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#1A1918" }}>Authenticator code</label>
-              <input
-                type="text" inputMode="numeric" pattern="[0-9 ]*" maxLength={7}
-                value={code} onChange={e => setCode(e.target.value)}
-                placeholder="000 000" autoFocus required
-                style={{ fontSize: 24, padding: "12px 16px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none", width: "100%", boxSizing: "border-box", textAlign: "center", letterSpacing: "0.2em", fontFamily: "monospace" }}
-              />
-            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={7}
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              placeholder="000 000"
+              autoFocus
+              style={{ fontSize: 28, textAlign: "center", letterSpacing: "0.2em", fontFamily: "monospace", padding: "12px", borderRadius: 8, border: "1px solid #C5C4BF", outline: "none" }}
+            />
 
             {error && (
               <div style={{ fontSize: 12, color: "#991B1B", background: "#FEE2E2", padding: "10px 12px", borderRadius: 8 }}>
@@ -52,9 +54,11 @@ export default function MfaVerify({ onVerify, onSignOut }) {
               {loading ? "Verifying…" : "Verify"}
             </button>
           </form>
+        </div>
 
-          <button onClick={onSignOut} style={{ width: "100%", marginTop: 16, padding: "8px", borderRadius: 8, border: "none", background: "none", fontSize: 12, color: "#9CA3AF", cursor: "pointer", fontFamily: "inherit" }}>
-            ← Back to sign in
+        <div style={{ textAlign: "center", marginTop: 16 }}>
+          <button onClick={onSignOut} style={{ fontSize: 12, color: "#9CA3AF", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            Sign out and use a different account
           </button>
         </div>
       </div>
